@@ -181,7 +181,7 @@ $azCliOutput = if($Quiet){'none'} else {'json'}
 
 #region Validate Parameters
 
-if($WebAppNamePrefix.Length -gt 21) {
+if($WebAppNamePrefix.Length -gt 40) {
     Throw "🛑 Web name prefix must be less than 21 characters."
     exit 1
 }
