@@ -53,7 +53,6 @@ if ($response -ne 'Y' -and $response -ne 'y') {
 
 # Proceed if the user agrees
 Write-Host "Thank you for agreeing. Proceeding with the script..." -ForegroundColor Green
-
 # Make sure to install Az Module before running this script
 # Install-Module Az
 # Install-Module -Name AzureAD
@@ -131,10 +130,12 @@ if ($ResourceGroupForDeployment -eq "") {
     $ResourceGroupForDeployment = $WebAppNamePrefix 
 }
 if ($SQLServerName -eq "") {
-    $SQLServerName = $WebAppNamePrefix + "-sql"
+    # $SQLServerName = $WebAppNamePrefix + "-sql"
+	$SQLServerName =  "sql-" + $WebAppNamePrefix
 }
 if ($SQLDatabaseName -eq "") {
-    $SQLDatabaseName = $WebAppNamePrefix +"AMPSaaSDB"
+    # $SQLDatabaseName = $WebAppNamePrefix +"AMPSaaSDB"
+	$SQLDatabaseName = $WebAppNamePrefix + "-amp-saas"
 }
 
 if($KeyVault -eq "")
@@ -316,12 +317,12 @@ if (!($ADApplicationIDAdmin)) {
 		"redirectUris": 
 		[
 			
-			"https://$WebAppNamePrefix-admin.azurewebsites.net",
-			"https://$WebAppNamePrefix-admin.azurewebsites.net/",
-			"https://$WebAppNamePrefix-admin.azurewebsites.net/Home/Index",
-			"https://$WebAppNamePrefix-admin.azurewebsites.net/Home/Index/"
+			"https://$WebAppNameAdmin.azurewebsites.net",
+			"https://$WebAppNameAdmin.azurewebsites.net/",
+			"https://$WebAppNameAdmin.azurewebsites.net/Home/Index",
+			"https://$WebAppNameAdmin.azurewebsites.net/Home/Index/"
 		],
-		"logoutUrl": "https://$WebAppNamePrefix-admin.azurewebsites.net/logout",
+		"logoutUrl": "https://$WebAppNameAdmin.azurewebsites.net/logout",
 		"implicitGrantSettings": 
 			{ "enableIdTokenIssuance" : true }
 	},
@@ -383,7 +384,7 @@ if (!($ADMTApplicationIDPortal)) {
 	
 		$appCreateRequestBodyJson = @"
 {
-	"displayName" : "$WebAppNamePrefix-LandingpageAppReg",
+	"displayName" : "DataCentral Marketplace Authentication",
 	"api": 
 	{
 		"requestedAccessTokenVersion" : 2
@@ -393,13 +394,13 @@ if (!($ADMTApplicationIDPortal)) {
 	{ 
 		"redirectUris": 
 		[
-			"https://$WebAppNamePrefix-portal.azurewebsites.net",
-			"https://$WebAppNamePrefix-portal.azurewebsites.net/",
-			"https://$WebAppNamePrefix-portal.azurewebsites.net/Home/Index",
-			"https://$WebAppNamePrefix-portal.azurewebsites.net/Home/Index/"
+			"https://$WebAppNamePortal.azurewebsites.net",
+			"https://$WebAppNamePortal.azurewebsites.net/",
+			"https://$WebAppNamePortal.azurewebsites.net/Home/Index",
+			"https://$WebAppNamePortal.azurewebsites.net/Home/Index/"
 			
 		],
-		"logoutUrl": "https://$WebAppNamePrefix-portal.azurewebsites.net/logout",
+		"logoutUrl": "https://$WebAppNamePortal.azurewebsites.net/logout",
 		"implicitGrantSettings": 
 			{ "enableIdTokenIssuance" : true }
 	},
@@ -477,10 +478,14 @@ if (!(Test-Path '../Publish')) {
 Write-host "☁ Deploy Azure Resources"
 
 #Set-up resource name variables
-$WebAppNameService=$WebAppNamePrefix+"-asp"
-$WebAppNameAdmin=$WebAppNamePrefix+"-admin"
-$WebAppNamePortal=$WebAppNamePrefix+"-portal"
-$VnetName=$WebAppNamePrefix+"-vnet"
+$WebAppNameService= "asp-" + $WebAppNamePrefix
+$WebAppNameAdmin = "wa-" + $WebAppNamePrefix + "-adminportal"
+$WebAppNamePortal = "wa-" + $WebAppNamePrefix + "-landingpage"
+$VnetName = "vnet-" + $WebAppNamePrefix
+# $WebAppNameService= $WebAppNamePrefix+"-asp"
+# $WebAppNameAdmin=$WebAppNamePrefix+"-admin"
+# $WebAppNamePortal=$WebAppNamePrefix+"-portal"
+# $VnetName=$WebAppNamePrefix+"-vnet"
 $privateSqlEndpointName=$WebAppNamePrefix+"-db-pe"
 $privateKvEndpointName=$WebAppNamePrefix+"-kv-pe"
 $privateSqlDnsZoneName="privatelink.database.windows.net"
@@ -550,7 +555,7 @@ Write-host "      ➡️ Setup access to KeyVault"
 az keyvault set-policy --name $KeyVault  --object-id $WebAppNameAdminId --secret-permissions get list --key-permissions get list --resource-group $ResourceGroupForDeployment --output $azCliOutput
 Write-host "      ➡️ Set Configuration"
 az webapp config connection-string set -g $ResourceGroupForDeployment -n $WebAppNameAdmin -t SQLAzure --output $azCliOutput --settings DefaultConnection=$DefaultConnectionKeyVault 
-az webapp config appsettings set -g $ResourceGroupForDeployment  -n $WebAppNameAdmin --output $azCliOutput --settings KnownUsers=$PublisherAdminUsers SaaSApiConfiguration__AdAuthenticationEndPoint=https://login.microsoftonline.com SaaSApiConfiguration__ClientId=$ADApplicationID SaaSApiConfiguration__ClientSecret=$ADApplicationSecretKeyVault SaaSApiConfiguration__FulFillmentAPIBaseURL=https://marketplaceapi.microsoft.com/api SaaSApiConfiguration__FulFillmentAPIVersion=2018-08-31 SaaSApiConfiguration__GrantType=client_credentials SaaSApiConfiguration__MTClientId=$ADApplicationIDAdmin SaaSApiConfiguration__IsAdminPortalMultiTenant=$IsAdminPortalMultiTenant SaaSApiConfiguration__Resource=20e940b3-4c77-4b0b-9a53-9e16a1b010a7 SaaSApiConfiguration__TenantId=$TenantID SaaSApiConfiguration__SignedOutRedirectUri=https://$WebAppNamePrefix-admin.azurewebsites.net/Home/Index/ SaaSApiConfiguration_CodeHash=$SaaSApiConfiguration_CodeHash
+az webapp config appsettings set -g $ResourceGroupForDeployment  -n $WebAppNameAdmin --output $azCliOutput --settings KnownUsers=$PublisherAdminUsers SaaSApiConfiguration__AdAuthenticationEndPoint=https://login.microsoftonline.com SaaSApiConfiguration__ClientId=$ADApplicationID SaaSApiConfiguration__ClientSecret=$ADApplicationSecretKeyVault SaaSApiConfiguration__FulFillmentAPIBaseURL=https://marketplaceapi.microsoft.com/api SaaSApiConfiguration__FulFillmentAPIVersion=2018-08-31 SaaSApiConfiguration__GrantType=client_credentials SaaSApiConfiguration__MTClientId=$ADApplicationIDAdmin SaaSApiConfiguration__IsAdminPortalMultiTenant=$IsAdminPortalMultiTenant SaaSApiConfiguration__Resource=20e940b3-4c77-4b0b-9a53-9e16a1b010a7 SaaSApiConfiguration__TenantId=$TenantID SaaSApiConfiguration__SignedOutRedirectUri=https://$WebAppNameAdmin.azurewebsites.net/Home/Index/ SaaSApiConfiguration_CodeHash=$SaaSApiConfiguration_CodeHash
 az webapp config set -g $ResourceGroupForDeployment -n $WebAppNameAdmin --always-on true  --output $azCliOutput
 
 Write-host "   🔵 Customer Portal WebApp"
@@ -562,7 +567,7 @@ Write-host "      ➡️ Setup access to KeyVault"
 az keyvault set-policy --name $KeyVault  --object-id $WebAppNamePortalId --secret-permissions get list --key-permissions get list --resource-group $ResourceGroupForDeployment --output $azCliOutput
 Write-host "      ➡️ Set Configuration"
 az webapp config connection-string set -g $ResourceGroupForDeployment -n $WebAppNamePortal -t SQLAzure --output $azCliOutput --settings DefaultConnection=$DefaultConnectionKeyVault
-az webapp config appsettings set -g $ResourceGroupForDeployment  -n $WebAppNamePortal --output $azCliOutput --settings SaaSApiConfiguration__AdAuthenticationEndPoint=https://login.microsoftonline.com SaaSApiConfiguration__ClientId=$ADApplicationID SaaSApiConfiguration__ClientSecret=$ADApplicationSecretKeyVault SaaSApiConfiguration__FulFillmentAPIBaseURL=https://marketplaceapi.microsoft.com/api SaaSApiConfiguration__FulFillmentAPIVersion=2018-08-31 SaaSApiConfiguration__GrantType=client_credentials SaaSApiConfiguration__MTClientId=$ADMTApplicationIDPortal SaaSApiConfiguration__Resource=20e940b3-4c77-4b0b-9a53-9e16a1b010a7 SaaSApiConfiguration__TenantId=$TenantID SaaSApiConfiguration__SignedOutRedirectUri=https://$WebAppNamePrefix-portal.azurewebsites.net/Home/Index/ SaaSApiConfiguration_CodeHash=$SaaSApiConfiguration_CodeHash
+az webapp config appsettings set -g $ResourceGroupForDeployment  -n $WebAppNamePortal --output $azCliOutput --settings SaaSApiConfiguration__AdAuthenticationEndPoint=https://login.microsoftonline.com SaaSApiConfiguration__ClientId=$ADApplicationID SaaSApiConfiguration__ClientSecret=$ADApplicationSecretKeyVault SaaSApiConfiguration__FulFillmentAPIBaseURL=https://marketplaceapi.microsoft.com/api SaaSApiConfiguration__FulFillmentAPIVersion=2018-08-31 SaaSApiConfiguration__GrantType=client_credentials SaaSApiConfiguration__MTClientId=$ADMTApplicationIDPortal SaaSApiConfiguration__Resource=20e940b3-4c77-4b0b-9a53-9e16a1b010a7 SaaSApiConfiguration__TenantId=$TenantID SaaSApiConfiguration__SignedOutRedirectUri=https://$WebAppNamePortal.azurewebsites.net/Home/Index/ SaaSApiConfiguration_CodeHash=$SaaSApiConfiguration_CodeHash
 az webapp config set -g $ResourceGroupForDeployment -n $WebAppNamePortal --always-on true --output $azCliOutput
 
 #endregion
@@ -642,21 +647,21 @@ az network private-endpoint dns-zone-group create --resource-group $ResourceGrou
 Write-host "✅ If the intallation completed without error complete the folllowing checklist:"
 if ($ISLoginAppProvided) {  #If provided then show the user where to add the landing page in AAD, otherwise script did this already for the user.
 	Write-host "   🔵 Add The following URLs to the multi-tenant Landing Page AAD App Registration in Azure Portal:"
-	Write-host "      ➡️ https://$WebAppNamePrefix-portal.azurewebsites.net"
-	Write-host "      ➡️ https://$WebAppNamePrefix-portal.azurewebsites.net/"
-	Write-host "      ➡️ https://$WebAppNamePrefix-portal.azurewebsites.net/Home/Index"
-	Write-host "      ➡️ https://$WebAppNamePrefix-portal.azurewebsites.net/Home/Index/"
+	Write-host "      ➡️ https://$WebAppNamePortal.azurewebsites.net"
+	Write-host "      ➡️ https://$WebAppNamePortal.azurewebsites.net/"
+	Write-host "      ➡️ https://$WebAppNamePortal.azurewebsites.net/Home/Index"
+	Write-host "      ➡️ https://$WebAppNamePortal.azurewebsites.net/Home/Index/"
 	Write-host "   🔵 Add The following URLs to the multi-tenant Admin Portal AAD App Registration in Azure Portal:"
-	Write-host "      ➡️ https://$WebAppNamePrefix-admin.azurewebsites.net"
-	Write-host "      ➡️ https://$WebAppNamePrefix-admin.azurewebsites.net/"
-	Write-host "      ➡️ https://$WebAppNamePrefix-admin.azurewebsites.net/Home/Index"
-	Write-host "      ➡️ https://$WebAppNamePrefix-admin.azurewebsites.net/Home/Index/"
+	Write-host "      ➡️ https://$WebAppNameAdmin.azurewebsites.net"
+	Write-host "      ➡️ https://$WebAppNameAdmin.azurewebsites.net/"
+	Write-host "      ➡️ https://$WebAppNameAdmin.azurewebsites.net/Home/Index"
+	Write-host "      ➡️ https://$WebAppNameAdmin.azurewebsites.net/Home/Index/"
 	Write-host "   🔵 Verify ID Tokens checkbox has been checked-out ?"
 }
 
 Write-host "   🔵 Add The following URL in PartnerCenter SaaS Technical Configuration"
-Write-host "      ➡️ Landing Page section:       https://$WebAppNamePrefix-portal.azurewebsites.net/"
-Write-host "      ➡️ Connection Webhook section: https://$WebAppNamePrefix-portal.azurewebsites.net/api/AzureWebhook"
+Write-host "      ➡️ Landing Page section:       https://$WebAppNamePortal.azurewebsites.net/"
+Write-host "      ➡️ Connection Webhook section: https://$WebAppNamePortal.azurewebsites.net/api/AzureWebhook"
 Write-host "      ➡️ Tenant ID:                  $TenantID"
 Write-host "      ➡️ AAD Application ID section: $ADApplicationID"
 $duration = (Get-Date) - $startTime
