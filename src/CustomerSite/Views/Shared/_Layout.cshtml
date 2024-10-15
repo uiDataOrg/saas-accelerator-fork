@@ -15,14 +15,11 @@
     <link href="~/lib/bootstrap/customer-offcanvas.css" rel="stylesheet" />
     
 </head>
-<body>
+<body style="height: 100vh;">
     <nav class="navbar navbar-expand-lg fixed-top navbar-dark cm-top-nav-bar">
         <a class="navbar-brand mr-auto mr-lg-0" href="@Url.Action("Index", "Home")">
-            <img class="cm-logo" style="padding-left:15px;" src="~/contoso-sales.png" />
-            @*<img class="cm-logo pull-left" src="https://kblnuser.azurewebsites.net/logo.png" />*@
+            <img class="cm-logo" style="padding-left:15px; height: 100%; width: 100%;" src="~/datacentral.svg" />
         </a>
-        @*<a class="navbar-brand mr-auto mr-lg-0" asp-area="" asp-controller="Home" asp-action="Index">SaasKit Demo</a>*@
-
         <div class="navbar-collapse offcanvas-collapse" id="navbarsExampleDefault">
             <div class="navbar-nav mr-auto">
 
@@ -64,7 +61,7 @@
 
     <footer class="cm-footer">
         <div class="container text-center">
-            &copy; 2020 - SaasKit - Demo - Version: @ViewData["AppVersion"]
+            &copy; uiData, 2024  - Version: @ViewData["AppVersion"]
         </div>
     </footer>
 
