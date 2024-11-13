@@ -112,6 +112,9 @@ public class HomeController : BaseController
 
     private SaaSApiClientConfiguration saaSApiClientConfiguration;
 
+    private readonly IDataCentralApiService dataCentralApiService;
+    private readonly IDataCentralTenantsRepository dataCentralTenantsRepository;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="HomeController" /> class.
     /// </summary>
@@ -158,7 +161,9 @@ public class HomeController : BaseController
         IOfferAttributesRepository offersAttributeRepository,
         IAppVersionService appVersionService,
         ISAGitReleasesService sAGitReleasesService, 
-        SaaSClientLogger<HomeController> logger) : base(applicationConfigRepository, appVersionService)
+        SaaSClientLogger<HomeController> logger,
+        IDataCentralApiService dataCentralApiService,
+        IDataCentralTenantsRepository dataCentralTenantsRepository) : base(applicationConfigRepository, appVersionService)
     {
         this.billingApiService = billingApiService;
         this.subscriptionRepo = subscriptionRepo;
@@ -185,6 +190,8 @@ public class HomeController : BaseController
         this.loggerFactory = loggerFactory;
         this.saaSApiClientConfiguration = saaSApiClientConfiguration;
         this.sAGitReleasesService = sAGitReleasesService;
+        this.dataCentralApiService = dataCentralApiService;
+        this.dataCentralTenantsRepository = dataCentralTenantsRepository;
 
         this.pendingActivationStatusHandlers = new PendingActivationStatusHandler(
             fulfillApiService,
@@ -435,7 +442,7 @@ public class HomeController : BaseController
     /// <param name="numberofProviders">The numberof providers.</param>
     /// <returns> The <see cref="IActionResult" />.</returns>
     [HttpPost]
-    public IActionResult SubscriptionOperation(Guid subscriptionId, string planId, string operation, int numberofProviders)
+    public async Task<IActionResult> SubscriptionOperationAsync(Guid subscriptionId, string planId, string operation, int numberofProviders)
     {
         this.logger.Info(HttpUtility.HtmlEncode($"Home Controller / SubscriptionOperation subscriptionId:{subscriptionId} :: planId : {planId} :: operation:{operation} :: NumberofProviders : {numberofProviders}"));
         try
@@ -445,6 +452,7 @@ public class HomeController : BaseController
             SubscriptionProcessQueueModel queueObject = new SubscriptionProcessQueueModel();
             if (operation == "Activate")
             {
+                //Goes only in here if subscription is going from PendingFulfillmentStart (user has not activated his subscription) to Subscribed
                 if (oldValue.SubscriptionStatus.ToString() != SubscriptionStatusEnumExtension.PendingActivation.ToString())
                 {
                     this.subscriptionRepository.UpdateStatusForSubscription(subscriptionId, SubscriptionStatusEnumExtension.PendingActivation.ToString(), true);
@@ -461,6 +469,20 @@ public class HomeController : BaseController
                     this.subscriptionLogRepository.Save(auditLog);
                 }
 
+                // Flow is PendingFulfillmentStart (user configures account) to PendingActivation (admin activates subscription) to Subscribed
+                //-----Duplicate from HomeController in CustomerSite-SubscriptionOperationAsync
+                var tenant = this.dataCentralTenantsRepository.Get(subscriptionId);
+                if (tenant == null)
+                {
+                    throw new Exception("Tenant not found");
+                }
+
+                await this.dataCentralApiService.CreateTenantAsync(tenant.Name, oldValue.CustomerEmailAddress, oldValue.CustomerName);
+
+                var newlyCreatedTenantId = await this.dataCentralApiService.GetTenantIdByNameAsync(tenant.Name);
+                tenant.TenantId = newlyCreatedTenantId;
+                this.dataCentralTenantsRepository.Update(tenant);
+                //---------------
                 this.pendingActivationStatusHandlers.Process(subscriptionId);
             }
 

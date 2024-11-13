@@ -11,6 +11,7 @@ using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
 using Marketplace.SaaS.Accelerator.DataAccess.Entities;
 using Marketplace.SaaS.Accelerator.Services.Contracts;
 using Marketplace.SaaS.Accelerator.Services.Exceptions;
+using Marketplace.SaaS.Accelerator.Services.Helpers;
 using Marketplace.SaaS.Accelerator.Services.Models;
 using Marketplace.SaaS.Accelerator.Services.Services;
 using Marketplace.SaaS.Accelerator.Services.StatusHandlers;
@@ -101,6 +102,10 @@ public class HomeController : BaseController
     /// </summary>
     private UserService userService;
 
+    private readonly IDataCentralApiService dataCentralApiService;
+    private readonly IDataCentralTenantsRepository dataCentralTenantsRepository;
+    private readonly EmailHelper emailHelper;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="HomeController" /> class.
     /// </summary>
@@ -137,7 +142,9 @@ public class HomeController : BaseController
         ILoggerFactory loggerFactory, 
         IEmailService emailService,
         IWebNotificationService webNotificationService,
-        IAppVersionService appVersionService) : base(appVersionService)
+        IAppVersionService appVersionService,
+        IDataCentralApiService dataCentralApiService,
+        IDataCentralTenantsRepository dataCentralTenantsRepository) : base(appVersionService)
     {
         this.apiService = apiService;
         this.subscriptionRepository = subscriptionRepo;
@@ -160,6 +167,10 @@ public class HomeController : BaseController
         this.emailService = emailService;
         this.loggerFactory = loggerFactory;
         this._webNotificationService = webNotificationService;
+        this.dataCentralApiService = dataCentralApiService;
+        this.dataCentralTenantsRepository = dataCentralTenantsRepository;
+
+        this.emailHelper = new EmailHelper(applicationConfigRepository, subscriptionRepository, emailTemplateRepository, planEventsMappingRepository, eventsRepository);
 
         this.pendingActivationStatusHandlers = new PendingActivationStatusHandler(
             apiService,
@@ -280,7 +291,7 @@ public class HomeController : BaseController
                 {
                     this.TempData["ShowWelcomeScreen"] = "True";
                     subscriptionExtension.ShowWelcomeScreen = true;
-                    return this.View(subscriptionExtension);
+                   return this.View(subscriptionExtension);
                 }
             }
             else
@@ -556,7 +567,7 @@ public class HomeController : BaseController
     /// </returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SubscriptionOperationAsync(SubscriptionResultExtension subscriptionResultExtension, Guid subscriptionId, string planId, string operation)
+    public async Task<IActionResult> SubscriptionOperationAsync(SubscriptionResultExtension subscriptionResultExtension, Guid subscriptionId, string planId, string operation, string tenantName = null)
     {
         this.logger.Info(HttpUtility.HtmlEncode($"Home Controller / SubscriptionOperation subscriptionId:{subscriptionId} :: planId : {planId} :: operation:{operation}"));
         if (this.User.Identity.IsAuthenticated)
@@ -582,6 +593,15 @@ public class HomeController : BaseController
                         try
                         {
                             this.logger.Info(HttpUtility.HtmlEncode($"Save Subscription Parameters:  {JsonSerializer.Serialize(subscriptionResultExtension.SubscriptionParameters)}" ));
+
+                            /// Custom addition
+                            this.dataCentralTenantsRepository.Add(new DataCentralTenant()
+                            {
+                                Name = tenantName,
+                                SubscriptionId = oldValue.Id,
+                            });
+                            ///
+
                             if (subscriptionResultExtension.SubscriptionParameters != null && subscriptionResultExtension.SubscriptionParameters.Count() > 0)
                             {
                                 var inputParms = subscriptionResultExtension.SubscriptionParameters.ToList().Where(s => s.Type.ToLower() == "input");
@@ -613,13 +633,30 @@ public class HomeController : BaseController
                                     }
                                 }
 
+                                //create tenant here since automation is enabled
+                                //-----Duplicate from HomeController in AdminSite-SubscriptionOperationAsync
+                                var tenant = this.dataCentralTenantsRepository.Get(subscriptionId);
+                                if (tenant == null)
+                                {
+                                    throw new Exception("Tenant not found");
+                                }
+                                
+                                await this.dataCentralApiService.CreateTenantAsync(tenant.Name, oldValue.CustomerEmailAddress, oldValue.CustomerName);
+
+                                var newlyCreatedTenantId = await this.dataCentralApiService.GetTenantIdByNameAsync(tenant.Name);
+                                tenant.TenantId = newlyCreatedTenantId;
+                                this.dataCentralTenantsRepository.Update(tenant);
+                                //----------
                                 this.pendingActivationStatusHandlers.Process(subscriptionId);
                             }
                             else
                             {
                                 this.pendingFulfillmentStatusHandlers.Process(subscriptionId);
                             }
-                            
+
+                            var emailContent = this.emailHelper.PrepareUserActivatesSubscriptionNotificationForAdminEmailContent(subscriptionId, oldValue.GuidPlanId, tenantName);
+                            this.emailService.SendEmail(emailContent);
+
                             await _webNotificationService.PushExternalWebNotificationAsync(subscriptionId, subscriptionResultExtension.SubscriptionParameters);
                         }
                         catch (MarketplaceException fex)

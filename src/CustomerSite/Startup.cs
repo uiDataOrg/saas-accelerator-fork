@@ -3,6 +3,7 @@
 
 using Azure.Identity;
 using Marketplace.SaaS.Accelerator.CustomerSite.Controllers;
+using Marketplace.SaaS.Accelerator.CustomerSite.Controllers.WebHook;
 using Marketplace.SaaS.Accelerator.CustomerSite.WebHook;
 using Marketplace.SaaS.Accelerator.DataAccess.Context;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
@@ -77,7 +78,9 @@ public class Startup
             SaaSAppUrl = this.Configuration["SaaSApiConfiguration:SaaSAppUrl"],
             SignedOutRedirectUri = this.Configuration["SaaSApiConfiguration:SignedOutRedirectUri"],
             TenantId = this.Configuration["SaaSApiConfiguration:TenantId"],
-            Environment = this.Configuration["SaaSApiConfiguration:Environment"]
+            Environment = this.Configuration["SaaSApiConfiguration:Environment"],
+            DataCentralApiBaseUrl = this.Configuration["SaaSApiConfiguration:DataCentralApiBaseUrl"],
+            DataCentralApiKey = this.Configuration["SaaSApiConfiguration:DataCentralApiKey"]
         };
         var creds = new ClientSecretCredential(config.TenantId.ToString(), config.ClientId.ToString(), config.ClientSecret);
 
@@ -181,5 +184,8 @@ public class Startup
         services.AddScoped<IEmailService, SMTPEmailService>();
         services.AddScoped<SaaSClientLogger<HomeController>>();
         services.AddScoped<IWebNotificationService, WebNotificationService>();
+        services.AddScoped<IDataCentralTenantsRepository, DataCentralTenantsRepository>();
+        services.AddScoped<IDataCentralApiService, DataCentralApiService>();
+        services.AddScoped<SaaSClientLogger<WebNotificationController>>();
     }
 }

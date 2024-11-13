@@ -113,5 +113,10 @@ public class SaaSApiClientConfiguration
     /// </value>
     public string IsAdminPortalMultiTenant { get; set; }
 
+    /// <summary>
+    /// Base url for api of DataCentral instance
+    /// </summary>
+    public string DataCentralApiBaseUrl { get; set; }
 
+    public string DataCentralApiKey { get; set; }
 }

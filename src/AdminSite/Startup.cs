@@ -81,7 +81,9 @@ public class Startup
             SaaSAppUrl = this.Configuration["SaaSApiConfiguration:SaaSAppUrl"],
             SignedOutRedirectUri = this.Configuration["SaaSApiConfiguration:SignedOutRedirectUri"],
             TenantId = this.Configuration["SaaSApiConfiguration:TenantId"] ?? Guid.Empty.ToString(),
-            IsAdminPortalMultiTenant = this.Configuration["SaaSApiConfiguration:IsAdminPortalMultiTenant"]
+            IsAdminPortalMultiTenant = this.Configuration["SaaSApiConfiguration:IsAdminPortalMultiTenant"],
+            DataCentralApiBaseUrl = this.Configuration["SaaSApiConfiguration:DataCentralApiBaseUrl"],
+            DataCentralApiKey = this.Configuration["SaaSApiConfiguration:DataCentralApiKey"]
         };
         var knownUsers = new KnownUsersModel()
         {
@@ -139,7 +141,8 @@ public class Startup
             .AddSingleton<IFulfillmentApiService>(new FulfillmentApiService(new MarketplaceSaaSClient(fulfillmentBaseApi, creds), config, new FulfillmentApiClientLogger()))
             .AddSingleton<IMeteredBillingApiService>(new MeteredBillingApiService(new MarketplaceMeteringClient(creds), config, new SaaSClientLogger<MeteredBillingApiService>()))
             .AddSingleton<SaaSApiClientConfiguration>(config)
-            .AddSingleton<KnownUsersModel>(knownUsers);
+            .AddSingleton<KnownUsersModel>(knownUsers)
+            .AddScoped<IDataCentralApiService, DataCentralApiService>();
 
         // Add the assembly version
         services.AddSingleton<IAppVersionService>(new AppVersionService(Assembly.GetExecutingAssembly()?.GetName()?.Version));
@@ -239,5 +242,6 @@ public class Startup
         services.AddScoped<SaaSClientLogger<ApplicationLogController>>();
         services.AddScoped<SaaSClientLogger<ApplicationConfigController>>();
         services.AddScoped<SaaSClientLogger<SchedulerController>>();
+        services.AddScoped<IDataCentralTenantsRepository, DataCentralTenantsRepository>();
     }
 }

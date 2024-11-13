@@ -185,6 +185,35 @@
 
                         }
 
+
+
+                        <dt class="col-sm-3 p-2 p10">
+                            @Html.DisplayName("Name for DataCentral tenant")
+                        </dt>
+                        <dd class="col-sm-9 p-2 p10" style="position: relative;">
+                            @Html.TextBoxFor(model => model.TenantName, new { style = "width:400px; height: 34px;", id = "tenantNameInput", onkeyup = "checkTenantAvailability()" })
+
+                            <!-- Icons for availability status -->
+                            <i id="availabilityCheck" class="fa fa-check" style="color: green; display: none; font-size: 24px;"></i>
+                            <i id="availabilityXmark" class="fa fa-times" style="color: red; display: none; font-size: 24px;"></i>
+
+                            <!-- Spinner icon for loading state -->
+                            <i id="availabilitySpinner" class="fa fa-spinner fa-spin" style="color: gray; display: none; font-size: 24px;"></i>
+
+                            <!-- Availability message below input -->
+                            <div id="availabilityMessage" style="color: red; font-size: 0.9em; display: none; margin-top: 5px;"></div>
+                        </dd>
+
+                        <!-- URL Container that should appear only if the tenant name is available -->
+                        <div id="urlContainer" style="display: none; padding: 0;">
+                            <dt class="col-sm-3 p-2 p10">
+                                Final tenant URL for your subscription
+                            </dt>
+                            <dd class="col-sm-9 p-2 p10">
+                                <span id="tenantUrl" style="font-weight: bold; color: #007BFF;"></span>
+                            </dd>
+                        </div>
+
                     </dl>
                 </div>
                 <div class="text-end">
@@ -199,7 +228,7 @@
                     }
                     @if (Model.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingFulfillmentStart && Model.IsAutomaticProvisioningSupported == false)
                     {
-                        <a onclick="SubscriptionOperation('@Model.Id','@Model.PlanId','Activate')" id="btnActive" class="cm-button-default text-end" style="text-decoration:none;">Subscribe</a>
+                        <a onclick="SubscriptionOperation('@Model.Id','@Model.PlanId','Activate')" id="btnActive" class="cm-button-default text-end" style="text-decoration:none;">Subscribeeee</a>
                     }
                 </div>
             }
@@ -233,7 +262,30 @@ else
 }
 <script type="text/javascript">
 
-    function SubscriptionOperation(subscriptionId, planId, operation) {
+    async function SubscriptionOperation(subscriptionId, planId, operation) {
+        const tenantName = document.getElementById("tenantNameInput").value;
+        console.log(subscriptionId);
+        console.log(tenantName);
+
+        if (!validateTenantName(tenantName)) {
+            swal({
+                title: "Required",
+                text: "Please fill out tenant name input",
+                icon: "warning"
+            });
+            return; // Exit the function if the tenant name is not valid
+        }
+
+        const isAvailable = await isTenantAvailable(tenantName);
+        if (!isAvailable) {
+            swal({
+                title: "Required",
+                text: "Tenant name is taken, please select another one",
+                icon: "warning"
+            });
+            return; // Exit the function if the tenant is not available
+        }
+
         if (validate()) {
             var formobject = $('#frmIndex').serialize();
             var csrftoken = $('input[name="__RequestVerificationToken"]').val();
@@ -241,34 +293,118 @@ else
                 url: '/Home/SubscriptionOperation',
                 type: 'POST',
                 headers: { RequestVerificationToken: csrftoken },
-                data: formobject + "&subscriptionId=" + subscriptionId + "&planId=" + planId + "&operation=" + operation,
+                data: formobject + "&subscriptionId=" + subscriptionId + "&planId=" + planId + "&operation=" + operation + "&tenantName=" + tenantName,
                 cache: false,
                 success: function (result) {
                     $('#divIndex').html(result);
                 },
-                Error:
-                    function (result) {
-                        $('#divIndex').html(result);
-                    }
+                error: function (result) {
+                    $('#divIndex').html(result);
+                }
             });
-        }
-        else {
+        } else {
             swal({
                 title: "Required",
                 text: "Please fill all required values",
                 icon: "warning"
-            })
-
+            });
         }
     }
+
 
 
     function validate() {
         var valid = true;
         $(':input[required]:visible').each(function () {
             if ($(this).val() == "") //check loginc here
+                console.log('here')
                 return valid = false;
         });
         return valid;
+    }
+
+    function validateTenantName(tenantName) {
+        var valid = true;
+        if (!tenantName || tenantName == "") {
+            return valid = false;
+        }
+        return valid;
+    }
+
+    let typingTimer;
+    const typingDelay = 200; // 1 second
+
+    function checkTenantAvailability() {
+        clearTimeout(typingTimer);
+        const tenantName = document.getElementById("tenantNameInput").value;
+
+        if (tenantName) {
+            typingTimer = setTimeout(async () => {
+                const availabilityCheck = document.getElementById("availabilityCheck");
+                const availabilityXmark = document.getElementById("availabilityXmark");
+                const availabilitySpinner = document.getElementById("availabilitySpinner");
+                const availabilityMessage = document.getElementById("availabilityMessage");
+                const urlContainer = document.getElementById("urlContainer");
+                const tenantUrl = document.getElementById("tenantUrl");
+
+                // Show spinner and hide check/xmark icons
+                availabilitySpinner.style.display = "inline";
+                availabilityCheck.style.display = "none";
+                availabilityXmark.style.display = "none";
+                availabilityMessage.style.display = "none";
+
+                // Check if tenant is available
+                const isAvailable = await isTenantAvailable(tenantName);
+
+                // Hide spinner after checking
+                availabilitySpinner.style.display = "none";
+
+                if (isAvailable) {
+                    // Show check icon, hide x-mark icon
+                    availabilityCheck.style.display = "inline";
+                    availabilityXmark.style.display = "none";
+                    availabilityMessage.style.display = "none";
+
+                    // Show the URL container and update the URL
+                    urlContainer.style.display = "flex";
+                    tenantUrl.textContent = `https://${tenantName}.dev.datacentral.ai`;
+                } else {
+                    // Show x-mark icon, hide check icon
+                    availabilityCheck.style.display = "none";
+                    availabilityXmark.style.display = "inline";
+                    availabilityMessage.style.display = "block";
+                    availabilityMessage.textContent = "Tenant name is taken, please choose another one.";
+
+                    // Hide the URL container if name is not available
+                    urlContainer.style.display = "none";
+                }
+            }, typingDelay);
+        } else {
+            // Hide icons, spinner, and message if input is empty
+            document.getElementById("availabilityCheck").style.display = "none";
+            document.getElementById("availabilityXmark").style.display = "none";
+            document.getElementById("availabilitySpinner").style.display = "none";
+            document.getElementById("availabilityMessage").style.display = "none";
+            document.getElementById("urlContainer").style.display = "none";
+        }
+    }
+
+    function isTenantAvailable(tenantName) {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: 'https://api.dev.datacentral.ai/api/services/app/Account/IsTenantAvailable',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ tenancyName: tenantName }),
+                cache: false,
+                success: function (response) {
+                    resolve(response.result && response.result.state === 3);
+                },
+                error: function (error) {
+                    console.error("Error:", error);
+                    resolve(false);
+                }
+            });
+        });
     }
 </script>
