@@ -218,7 +218,7 @@
                             @Html.DisplayName("Name for DataCentral tenant")
                         </dt>
                         <dd class="col-sm-9 p-2 p10" style="position: relative;">
-                            @Html.TextBoxFor(model => model.TenantName, new { style = "width:400px; height: 34px;", id = "tenantNameInput", onkeyup = "checkTenantAvailability()" })
+                            @Html.TextBoxFor(model => model.DataCentralTenantName, new { style = "width:400px; height: 34px;", id = "tenantNameInput", onkeyup = "checkTenantAvailability()" })
 
                             <!-- Icons for availability status -->
                             <i id="availabilityCheck" class="fa fa-check" style="color: green; display: none; font-size: 24px;"></i>
