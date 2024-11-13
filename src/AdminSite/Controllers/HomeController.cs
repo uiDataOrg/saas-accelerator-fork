@@ -388,6 +388,10 @@ public class HomeController : BaseController
             subscriptionDetail.SubscriptionParameters = this.subscriptionService.GetSubscriptionsParametersById(subscriptionId, plandetails.PlanGuid);
             var detailsFromAPI = await this.fulfillApiService.GetSubscriptionByIdAsync(subscriptionId).ConfigureAwait(false);
             subscriptionDetail.Beneficiary = detailsFromAPI.Beneficiary;
+
+            var tenant = this.dataCentralTenantsRepository.Get(subscriptionDetail.Id);
+            subscriptionDetail.DataCentralTenantName = tenant.Name;
+            subscriptionDetail.DataCentralTenantId = tenant.Id;
         }
 
         return this.View(subscriptionDetail);

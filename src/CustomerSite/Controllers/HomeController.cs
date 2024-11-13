@@ -654,7 +654,7 @@ public class HomeController : BaseController
                                 this.pendingFulfillmentStatusHandlers.Process(subscriptionId);
                             }
 
-                            var emailContent = this.emailHelper.PrepareUserActivatesSubscriptionNotificationForAdminEmailContent(subscriptionId, oldValue.GuidPlanId, tenantName);
+                            var emailContent = this.emailHelper.PrepareUserActivatesSubscriptionNotificationForAdminEmailContent(subscriptionId, oldValue.PlanId, tenantName);
                             this.emailService.SendEmail(emailContent);
 
                             await _webNotificationService.PushExternalWebNotificationAsync(subscriptionId, subscriptionResultExtension.SubscriptionParameters);

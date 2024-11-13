@@ -123,13 +123,21 @@
                             @Html.HiddenFor(model => model.Beneficiary.ObjectId)
                         </dd>
 
-                        @* todo *@
                         <dt class="col-sm-3 p-2 p10">
-                            @Html.DisplayName("TODO Datacentral tenantid and tenantname")
+                            @Html.DisplayName("DataCentral Tenant Name")
                         </dt>
                         <dd class="col-sm-9 p-2 p10">
-
+                            @Html.DisplayFor(model => model.DataCentralTenantName)
+                            @Html.HiddenFor(model => model.DataCentralTenantName)
                         </dd>
+                        <dt class="col-sm-3 p-2 p10">
+                            @Html.DisplayName("DataCentral Tenant Id")
+                        </dt>
+                        <dd class="col-sm-9 p-2 p10">
+                            @Html.DisplayFor(model => model.DataCentralTenantId)
+                            @Html.HiddenFor(model => model.DataCentralTenantId)
+                        </dd>
+
                     </dl>
                 </div>
                 <div style="text-align: right !important;">

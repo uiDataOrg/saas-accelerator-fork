@@ -77,5 +77,7 @@ public class SubscriptionResultExtension : SubscriptionResult
     /// <summary>
     /// Custom addition
     /// </summary>
-    public string TenantName { get; set; }
+    public string DataCentralTenantName { get; set; }
+
+    public int DataCentralTenantId { get; set; }
 }

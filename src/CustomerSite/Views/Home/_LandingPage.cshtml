@@ -6,6 +6,33 @@
 @{
     ViewData["Title"] = "Home";
 }
+<style>
+    .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        visibility: hidden;
+        opacity: 0;
+        transition: visibility 0s, opacity 0.3s ease;
+    }
+
+        .overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+    .spinner {
+        font-size: 50px;
+        color: white;
+    }
+</style>
 @if (!Model.ShowWelcomeScreen)
 {
     <div class="container" id="divHome">
@@ -231,6 +258,10 @@
                         <a onclick="SubscriptionOperation('@Model.Id','@Model.PlanId','Activate')" id="btnActive" class="cm-button-default text-end" style="text-decoration:none;">Subscribeeee</a>
                     }
                 </div>
+
+                <div id="fullPageSpinner" class="overlay">
+                    <i class="fa fa-spinner fa-spin spinner"></i>
+                </div>
             }
         </form>
     </div>
@@ -287,6 +318,9 @@ else
         }
 
         if (validate()) {
+            // Show the spinner overlay when validation passes
+            document.getElementById('fullPageSpinner').classList.add('show');
+
             var formobject = $('#frmIndex').serialize();
             var csrftoken = $('input[name="__RequestVerificationToken"]').val();
             $.ajax({
@@ -297,9 +331,13 @@ else
                 cache: false,
                 success: function (result) {
                     $('#divIndex').html(result);
+                    // Hide the spinner overlay on success
+                    document.getElementById('fullPageSpinner').classList.remove('show');
                 },
                 error: function (result) {
                     $('#divIndex').html(result);
+                    // Hide the spinner overlay on error
+                    document.getElementById('fullPageSpinner').classList.remove('show');
                 }
             });
         } else {
@@ -311,30 +349,24 @@ else
         }
     }
 
-
-
     function validate() {
         var valid = true;
         $(':input[required]:visible').each(function () {
-            if ($(this).val() == "") //check loginc here
-                console.log('here')
-                return valid = false;
+            if ($(this).val() == "") {
+                valid = false;
+            }
         });
         return valid;
     }
 
     function validateTenantName(tenantName) {
-        var valid = true;
-        if (!tenantName || tenantName == "") {
-            return valid = false;
-        }
-        return valid;
+        return !!tenantName;
     }
 
     let typingTimer;
     const typingDelay = 200; // 1 second
 
-    function checkTenantAvailability() {
+    async function checkTenantAvailability() {
         clearTimeout(typingTimer);
         const tenantName = document.getElementById("tenantNameInput").value;
 
@@ -348,12 +380,13 @@ else
                 const tenantUrl = document.getElementById("tenantUrl");
 
                 // Show spinner and hide check/xmark icons
-                availabilitySpinner.style.display = "inline";
+                availabilitySpinner.style.display = "inline-block";
                 availabilityCheck.style.display = "none";
                 availabilityXmark.style.display = "none";
                 availabilityMessage.style.display = "none";
 
                 // Check if tenant is available
+                //await new Promise(resolve => setTimeout(resolve, 3000));
                 const isAvailable = await isTenantAvailable(tenantName);
 
                 // Hide spinner after checking
@@ -390,6 +423,7 @@ else
     }
 
     function isTenantAvailable(tenantName) {
+        
         return new Promise((resolve, reject) => {
             $.ajax({
                 url: 'https://api.dev.datacentral.ai/api/services/app/Account/IsTenantAvailable',
