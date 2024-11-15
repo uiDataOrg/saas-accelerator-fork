@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 namespace Marketplace.SaaS.Accelerator.Services.Contracts;
 public interface IDataCentralApiService
 {
-    Task CreateTenantForNewSubscription(Guid subscriptionId, string customerEmailAddress, string customerName);
+    Task CreateTenantForNewSubscription(Guid subscriptionId, string customerEmailAddress, string customerName, string planId);
 
     Task DisableTenant(Guid subscriptionId);
 

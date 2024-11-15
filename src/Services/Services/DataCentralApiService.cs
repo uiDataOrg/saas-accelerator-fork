@@ -48,7 +48,28 @@ public class DataCentralApiService : IDataCentralApiService
         return this.ClientConfiguration.DataCentralApiKey;
     }
 
-    public async Task CreateTenantForNewSubscription(Guid subscriptionId, string customerEmailAddress, string customerName )
+    private int GetEditionIdByPlanId(string planId)
+    {
+        var plan = this.planRepository.GetById(planId);
+        if (plan == null)
+        {
+            throw new ArgumentException("Plan not found for the given plan ID.", nameof(planId));
+        }
+
+        var editionIdConfig = configuration[$"DataCentralConfig:{plan.DisplayName}EditionId"];
+        if (string.IsNullOrEmpty(editionIdConfig))
+        {
+            throw new InvalidOperationException($"Configuration for EditionId of plan '{plan.DisplayName}' is missing.");
+        }
+
+        if (!int.TryParse(editionIdConfig, out int editionId))
+        {
+            throw new InvalidOperationException($"Configuration for EditionId of plan '{plan.DisplayName}' is not a valid integer.");
+        }
+        return editionId;
+    }
+
+    public async Task CreateTenantForNewSubscription(Guid subscriptionId, string customerEmailAddress, string customerName, string planId)
     {
         var tenant = this.dataCentralTenantsRepository.Get(subscriptionId);
         if (tenant == null)
@@ -56,7 +77,9 @@ public class DataCentralApiService : IDataCentralApiService
             throw new Exception("Tenant not found");
         }
 
-        await CreateTenantAsyncInternal(tenant.Name, customerEmailAddress, customerName);
+        var editionId = GetEditionIdByPlanId(planId);
+
+        await CreateTenantAsyncInternal(tenant.Name, customerEmailAddress, customerName, editionId);
 
         var newlyCreatedTenantId = await GetTenantIdByNameInternalAsync(tenant.Name);
         tenant.TenantId = newlyCreatedTenantId;
@@ -66,31 +89,12 @@ public class DataCentralApiService : IDataCentralApiService
     public async Task UpdateTenantEditionForPlanChange(Guid subscriptionId, string newPlanId)
     {
         var tenant = this.dataCentralTenantsRepository.Get(subscriptionId);
-        var plan = this.planRepository.GetById(newPlanId);
-
-        // Check if plan or tenant is null
         if (tenant == null)
         {
             throw new ArgumentException("Tenant not found for the given subscription ID.", nameof(subscriptionId));
         }
 
-        if (plan == null)
-        {
-            throw new ArgumentException("Plan not found for the given plan ID.", nameof(newPlanId));
-        }
-
-        // Retrieve configuration value and check if it's empty
-        var editionIdConfig = configuration[$"DataCentralConfig:{plan.DisplayName}EditionId"];
-        if (string.IsNullOrEmpty(editionIdConfig))
-        {
-            throw new InvalidOperationException($"Configuration for EditionId of plan '{plan.DisplayName}' is missing.");
-        }
-
-        // Try parsing the EditionId and check if it's a valid integer
-        if (!int.TryParse(editionIdConfig, out int editionId))
-        {
-            throw new InvalidOperationException($"Configuration for EditionId of plan '{plan.DisplayName}' is not a valid integer.");
-        }
+        var editionId = GetEditionIdByPlanId(newPlanId);
 
         await ChangeEditionForTenantInternalAsync(tenant.TenantId, editionId);
     }
@@ -130,10 +134,9 @@ public class DataCentralApiService : IDataCentralApiService
         }
     }
 
-    private async Task CreateTenantAsyncInternal(string tenantName, string adminEmailAddress, string adminName)
+    private async Task CreateTenantAsyncInternal(string tenantName, string adminEmailAddress, string adminName, int editionId)
     {
         var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/Tenant/CreateTenant";
-        var editionId = Convert.ToInt32(this.applicationConfigRepository.GetValueByName("DataCentralEditionId_P1"));
         var requestBody = new CreateTenantDto()
         {
             TenancyName = tenantName,

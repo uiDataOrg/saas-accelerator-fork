@@ -475,7 +475,7 @@ public class HomeController : BaseController
 
                 // Flow is PendingFulfillmentStart (user configures account) to PendingActivation (admin activates subscription) to Subscribed
                 
-                await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName);
+                await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
 
                 this.pendingActivationStatusHandlers.Process(subscriptionId);
             }
