@@ -82,8 +82,8 @@ public class Startup
             SignedOutRedirectUri = this.Configuration["SaaSApiConfiguration:SignedOutRedirectUri"],
             TenantId = this.Configuration["SaaSApiConfiguration:TenantId"] ?? Guid.Empty.ToString(),
             IsAdminPortalMultiTenant = this.Configuration["SaaSApiConfiguration:IsAdminPortalMultiTenant"],
-            DataCentralApiBaseUrl = this.Configuration["SaaSApiConfiguration:DataCentralApiBaseUrl"],
-            DataCentralApiKey = this.Configuration["SaaSApiConfiguration:DataCentralApiKey"]
+            DataCentralApiBaseUrl = this.Configuration["DataCentralConfig:ApiBaseUrl"],
+            DataCentralApiKey = this.Configuration["DataCentralConfig:ApiKey"],
         };
         var knownUsers = new KnownUsersModel()
         {

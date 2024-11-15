@@ -79,8 +79,8 @@ public class Startup
             SignedOutRedirectUri = this.Configuration["SaaSApiConfiguration:SignedOutRedirectUri"],
             TenantId = this.Configuration["SaaSApiConfiguration:TenantId"],
             Environment = this.Configuration["SaaSApiConfiguration:Environment"],
-            DataCentralApiBaseUrl = this.Configuration["SaaSApiConfiguration:DataCentralApiBaseUrl"],
-            DataCentralApiKey = this.Configuration["SaaSApiConfiguration:DataCentralApiKey"]
+            DataCentralApiBaseUrl = this.Configuration["DataCentralConfig:ApiBaseUrl"],
+            DataCentralApiKey = this.Configuration["DataCentralConfig:ApiKey"],
         };
         var creds = new ClientSecretCredential(config.TenantId.ToString(), config.ClientId.ToString(), config.ClientSecret);
 

@@ -285,6 +285,12 @@ public class HomeController : BaseController
                         subscriptionExtension.SubscriptionParameters = this.subscriptionService.GetSubscriptionsParametersById(newSubscription.SubscriptionId, currentPlan.PlanGuid);
                         subscriptionExtension.IsAutomaticProvisioningSupported = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("IsAutomaticProvisioningSupported"));
                         subscriptionExtension.AcceptSubscriptionUpdates = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("AcceptSubscriptionUpdates"));
+
+                        var datacentralTenant = this.dataCentralTenantsRepository.Get(newSubscription.SubscriptionId);
+                        if (subscriptionExtension.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && datacentralTenant != null)
+                        {
+                            subscriptionExtension.DataCentralTenantName = datacentralTenant.Name;
+                        }
                     }
                 }
                 else
@@ -633,20 +639,9 @@ public class HomeController : BaseController
                                     }
                                 }
 
-                                //create tenant here since automation is enabled
-                                //-----Duplicate from HomeController in AdminSite-SubscriptionOperationAsync
-                                var tenant = this.dataCentralTenantsRepository.Get(subscriptionId);
-                                if (tenant == null)
-                                {
-                                    throw new Exception("Tenant not found");
-                                }
-                                
-                                await this.dataCentralApiService.CreateTenantAsync(tenant.Name, oldValue.CustomerEmailAddress, oldValue.CustomerName);
+                                // Create tenant directly since automation is enabled
+                                await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName);
 
-                                var newlyCreatedTenantId = await this.dataCentralApiService.GetTenantIdByNameAsync(tenant.Name);
-                                tenant.TenantId = newlyCreatedTenantId;
-                                this.dataCentralTenantsRepository.Update(tenant);
-                                //----------
                                 this.pendingActivationStatusHandlers.Process(subscriptionId);
                             }
                             else
@@ -681,6 +676,9 @@ public class HomeController : BaseController
                             };
                             this.subscriptionLogRepository.Save(auditLog);
                         }
+
+                        //Delete tenant here
+                        await this.dataCentralApiService.DisableTenant(subscriptionId);
 
                         this.unsubscribeStatusHandlers.Process(subscriptionId);
                     }
@@ -752,6 +750,9 @@ public class HomeController : BaseController
                             if (changePlanOperationStatus == OperationStatusEnum.Succeeded)
                             {
                                 this.logger.Info(HttpUtility.HtmlEncode($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan : {subscriptionDetail.PlanId} UserId: ***** OperationId: {jsonResult.OperationId}."));
+
+                                await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
+
                                 await this.applicationLogService.AddApplicationLog($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan: {subscriptionDetail.PlanId} UserId: {currentUserId} OperationId: {jsonResult.OperationId}.").ConfigureAwait(false);
                             }
                             else
@@ -899,6 +900,12 @@ public class HomeController : BaseController
                 subscriptionDetail.CustomerName = this.CurrentUserName;
                 subscriptionDetail.SubscriptionParameters = this.subscriptionService.GetSubscriptionsParametersById(subscriptionId, planDetails.PlanGuid);
                 subscriptionDetail.IsAutomaticProvisioningSupported = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("IsAutomaticProvisioningSupported"));
+
+                var datacentralTenant = this.dataCentralTenantsRepository.Get(subscriptionDetail.Id);
+                if (subscriptionDetail.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && datacentralTenant != null)
+                {
+                    subscriptionDetail.DataCentralTenantName = datacentralTenant.Name;
+                }
             }
 
             return this.View("Index", subscriptionDetail);

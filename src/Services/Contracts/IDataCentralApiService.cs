@@ -1,15 +1,14 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace Marketplace.SaaS.Accelerator.Services.Contracts;
 public interface IDataCentralApiService
 {
-    Task CreateTenantAsync(string tenantName, string adminEmailAddress, string adminName);
+    Task CreateTenantForNewSubscription(Guid subscriptionId, string customerEmailAddress, string customerName);
 
-    Task<int> GetTenantIdByNameAsync(string tenantName);
+    Task DisableTenant(Guid subscriptionId);
 
-    Task EnableTenantAsync(int tenantId);
+    Task EnableTenant(Guid subscriptionId);
 
-    Task DisableTenantAsync(int tenantId);
-
-    Task ChangeEditionForTenantAsync(int tenantId, int editionId);
+    Task UpdateTenantEditionForPlanChange(Guid subscriptionId, string newPlanName);
 }

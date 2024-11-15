@@ -474,19 +474,9 @@ public class HomeController : BaseController
                 }
 
                 // Flow is PendingFulfillmentStart (user configures account) to PendingActivation (admin activates subscription) to Subscribed
-                //-----Duplicate from HomeController in CustomerSite-SubscriptionOperationAsync
-                var tenant = this.dataCentralTenantsRepository.Get(subscriptionId);
-                if (tenant == null)
-                {
-                    throw new Exception("Tenant not found");
-                }
+                
+                await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName);
 
-                await this.dataCentralApiService.CreateTenantAsync(tenant.Name, oldValue.CustomerEmailAddress, oldValue.CustomerName);
-
-                var newlyCreatedTenantId = await this.dataCentralApiService.GetTenantIdByNameAsync(tenant.Name);
-                tenant.TenantId = newlyCreatedTenantId;
-                this.dataCentralTenantsRepository.Update(tenant);
-                //---------------
                 this.pendingActivationStatusHandlers.Process(subscriptionId);
             }
 
@@ -503,6 +493,9 @@ public class HomeController : BaseController
                     CreateDate = DateTime.Now,
                 };
                 this.subscriptionLogRepository.Save(auditLog);
+
+                //Delete tenant here
+                await this.dataCentralApiService.DisableTenant(subscriptionId);
 
                 this.unsubscribeStatusHandlers.Process(subscriptionId);
             }
@@ -798,6 +791,9 @@ public class HomeController : BaseController
                         if (changePlanOperationStatus == OperationStatusEnum.Succeeded)
                         {
                             this.logger.Info(HttpUtility.HtmlEncode($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan : {subscriptionDetail.PlanId} UserId: ***** OperationId: {jsonResult.OperationId}."));
+
+                            await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
+
                             await this.applicationLogService.AddApplicationLog($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan: {subscriptionDetail.PlanId} UserId: {currentUserId} OperationId: {jsonResult.OperationId}.").ConfigureAwait(false);
                         }
                         else
@@ -874,6 +870,9 @@ public class HomeController : BaseController
                             if (changeQuantityOperationStatus == OperationStatusEnum.Succeeded)
                             {
                                 this.logger.Info(HttpUtility.HtmlEncode($"Quantity Change Success. SubscriptionId: {subscriptionDetail.Id} ToQuantity: {subscriptionDetail.Quantity} UserId: ****** OperationId: {jsonResult.OperationId}."));
+
+                                await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
+
                                 await this.applicationLogService.AddApplicationLog($"Quantity Change Success. SubscriptionId: {subscriptionDetail.Id} ToQuantity: {subscriptionDetail.Quantity} UserId: {currentUserId} OperationId: {jsonResult.OperationId}.").ConfigureAwait(false);
                             }
                             else

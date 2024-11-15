@@ -60,10 +60,29 @@
                         <div id="frmSpinner" class="spinner-border mt-2" role="status" style="margin-bottom: -10px; margin-right: 20px;" hidden>
                             @* <span class="sr-only">Processing...</span> *@
                         </div>
-                        <button id="frmButton" type="button" onclick="confirmDialog()" class="btn cm-button-default text-end">Change Plan</button>
+                        <button id="frmButton" type="button" onclick="confirmDialog()" class="cm-button-default text-end">Change Plan</button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+    function confirmDialog() {
+        var newPlanName = $('#PlanId').val();
+        swal({
+            text: "Are you sure you want to switch to " + newPlanName + " plan?",
+            icon: "warning",
+            buttons: true,
+            dangerMode: true,
+        })
+            .then((willChange) => {
+                if (willChange) {
+                    $("#frmButton").prop("disabled", true);
+                    $("#frmSpinner").prop("hidden", false);
+                    $("#frmSubscriptionDetail").submit();
+                }
+            });
+    }
+</script>

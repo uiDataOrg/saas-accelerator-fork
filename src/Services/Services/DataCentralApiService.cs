@@ -2,12 +2,12 @@
 using Newtonsoft.Json;
 using System;
 using System.Net.Http;
-using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Marketplace.SaaS.Accelerator.Services.Contracts;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace Marketplace.SaaS.Accelerator.Services.Services;
 public class DataCentralApiService : IDataCentralApiService
@@ -16,17 +16,26 @@ public class DataCentralApiService : IDataCentralApiService
     protected SaaSApiClientConfiguration ClientConfiguration { get; set; }
     private readonly IApplicationConfigRepository applicationConfigRepository;
     private readonly ILogger<DataCentralApiService> logger;
+    private readonly IDataCentralTenantsRepository dataCentralTenantsRepository;
+    private readonly IPlansRepository planRepository;
+    private readonly IConfiguration configuration;
 
     private readonly string ApiUrlInfix = "/api/services/app";
 
     public DataCentralApiService(
         SaaSApiClientConfiguration clientConfiguration, 
         IApplicationConfigRepository applicationConfigRepository, 
-        ILogger<DataCentralApiService> logger)
+        ILogger<DataCentralApiService> logger,
+        IDataCentralTenantsRepository dataCentralTenantsRepository,
+        IPlansRepository planRepository,
+        IConfiguration configuration)
     {        
         this.ClientConfiguration = clientConfiguration;
         this.applicationConfigRepository = applicationConfigRepository;
         this.logger = logger;
+        this.dataCentralTenantsRepository = dataCentralTenantsRepository;
+        this.planRepository = planRepository;
+        this.configuration = configuration;
     }
 
     private string GetApiUrl()
@@ -39,7 +48,89 @@ public class DataCentralApiService : IDataCentralApiService
         return this.ClientConfiguration.DataCentralApiKey;
     }
 
-    public async Task CreateTenantAsync(string tenantName, string adminEmailAddress, string adminName)
+    public async Task CreateTenantForNewSubscription(Guid subscriptionId, string customerEmailAddress, string customerName )
+    {
+        var tenant = this.dataCentralTenantsRepository.Get(subscriptionId);
+        if (tenant == null)
+        {
+            throw new Exception("Tenant not found");
+        }
+
+        await CreateTenantAsyncInternal(tenant.Name, customerEmailAddress, customerName);
+
+        var newlyCreatedTenantId = await GetTenantIdByNameInternalAsync(tenant.Name);
+        tenant.TenantId = newlyCreatedTenantId;
+        this.dataCentralTenantsRepository.Update(tenant);
+    }
+
+    public async Task UpdateTenantEditionForPlanChange(Guid subscriptionId, string newPlanId)
+    {
+        var tenant = this.dataCentralTenantsRepository.Get(subscriptionId);
+        var plan = this.planRepository.GetById(newPlanId);
+
+        // Check if plan or tenant is null
+        if (tenant == null)
+        {
+            throw new ArgumentException("Tenant not found for the given subscription ID.", nameof(subscriptionId));
+        }
+
+        if (plan == null)
+        {
+            throw new ArgumentException("Plan not found for the given plan ID.", nameof(newPlanId));
+        }
+
+        // Retrieve configuration value and check if it's empty
+        var editionIdConfig = configuration[$"DataCentralConfig:{plan.DisplayName}EditionId"];
+        if (string.IsNullOrEmpty(editionIdConfig))
+        {
+            throw new InvalidOperationException($"Configuration for EditionId of plan '{plan.DisplayName}' is missing.");
+        }
+
+        // Try parsing the EditionId and check if it's a valid integer
+        if (!int.TryParse(editionIdConfig, out int editionId))
+        {
+            throw new InvalidOperationException($"Configuration for EditionId of plan '{plan.DisplayName}' is not a valid integer.");
+        }
+
+        await ChangeEditionForTenantInternalAsync(tenant.TenantId, editionId);
+    }
+
+
+    //"Delete"
+    //User or admin unsubscribes
+    //Offer suspended due to bill not paid
+    public async Task DisableTenant(Guid subscriptionId)
+    {
+        try
+        {
+            var dataCentralTenant = this.dataCentralTenantsRepository.Get(subscriptionId);
+            await SetTenantStatusInternalAsync(dataCentralTenant.TenantId, false);
+        }
+        catch(Exception ex)
+        {
+            logger.LogError("Error in disable tenant: {0}", ex);
+            //do something more here, send email to admins?
+            throw;
+        }
+    }
+
+    //Offer reinstated, user paid bill
+    public async Task EnableTenant(Guid subscriptionId)
+    {
+        try
+        {
+            var dataCentralTenant = this.dataCentralTenantsRepository.Get(subscriptionId);
+            await SetTenantStatusInternalAsync(dataCentralTenant.TenantId, true);
+        }
+        catch(Exception ex)
+        {
+            logger.LogError("Error in enable tenant: {0}", ex);
+            //do something more here, send email to admins?
+            throw;
+        }
+    }
+
+    private async Task CreateTenantAsyncInternal(string tenantName, string adminEmailAddress, string adminName)
     {
         var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/Tenant/CreateTenant";
         var editionId = Convert.ToInt32(this.applicationConfigRepository.GetValueByName("DataCentralEditionId_P1"));
@@ -68,7 +159,7 @@ public class DataCentralApiService : IDataCentralApiService
         }
     }
 
-    public async Task<int> GetTenantIdByNameAsync(string tenantName)
+    private async Task<int> GetTenantIdByNameInternalAsync(string tenantName)
     {
         var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/Account/IsTenantAvailable";
         var requestBody = new 
@@ -100,219 +191,66 @@ public class DataCentralApiService : IDataCentralApiService
         }
     }
 
-    public async Task EnableTenantAsync(int tenantId)
+    private async Task SetTenantStatusInternalAsync(int tenantId, bool isActive)
     {
-        var getTenantForEdit = await GetTenantForEdit(tenantId);
-        var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/UpdateTenant";
-        var requestBody = new EditTenantDto
-        {
-            Name = getTenantForEdit.Name,
-            IsActive = true,
-            TenancyName = getTenantForEdit.TenancyName,
-            EditionId = getTenantForEdit.EditionId,
-            IsInTrialPeriod = getTenantForEdit.IsInTrialPeriod,
-            ConnectionString = getTenantForEdit.ConnectionString,
-            SubscriptionEndDateUtc = getTenantForEdit.SubscriptionEndDateUtc
-        };
+        var tenantForEdit = await GetTenantForEditInternalAsync(tenantId);
+        var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/Tenant/UpdateTenant";
 
-        var jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+        tenantForEdit.IsActive = isActive;
 
-        try
+        var jsonContent = new StringContent(JsonConvert.SerializeObject(tenantForEdit), Encoding.UTF8, "application/json");
+
+        using (HttpClient client = new HttpClient())
         {
-            using (HttpClient client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("x-api-key", GetDataCentralApiKey());
-                var response = await client.PutAsync(requestUrl, jsonContent);
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("Tenant created successfully.");
-                }
-                else if (response.StatusCode == HttpStatusCode.InternalServerError)
-                {
-                    Console.WriteLine("Server encountered an internal error (500). Please try again later.");
-                }
-                else
-                {
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Failed to create tenant. Status Code: {(int)response.StatusCode}, Message: {responseContent}");
-                }
-            }
-        }
-        catch (HttpRequestException httpEx)
-        {
-            Console.WriteLine($"Request failed: {httpEx.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"An error occurred: {ex.Message}");
+            // Set the x-api-key header
+            var key = GetDataCentralApiKey();
+            client.DefaultRequestHeaders.Add("x-api-key", GetDataCentralApiKey());
+
+            var response = await client.PutAsync(requestUrl, jsonContent);
+            var content = await response.Content.ReadAsStringAsync();
+            response.EnsureSuccessStatusCode();
         }
     }
 
-    public async Task DisableTenantAsync(int tenantId)
+    private async Task ChangeEditionForTenantInternalAsync(int tenantId, int editionId)
     {
-        var getTenantForEdit = await GetTenantForEdit(tenantId);
-        var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/UpdateTenant";
-        var requestBody = new EditTenantDto
-        {
-            Name = getTenantForEdit.Name,
-            IsActive = false,
-            TenancyName = getTenantForEdit.TenancyName,
-            EditionId = getTenantForEdit.EditionId,
-            IsInTrialPeriod = getTenantForEdit.IsInTrialPeriod,
-            ConnectionString = getTenantForEdit.ConnectionString,
-            SubscriptionEndDateUtc = getTenantForEdit.SubscriptionEndDateUtc
-        };
+        var tenantForEdit = await GetTenantForEditInternalAsync(tenantId);
+        var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/Tenant/UpdateTenant";
 
-        var jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+        tenantForEdit.EditionId = editionId;
 
-        try
-        {
-            using (HttpClient client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("x-api-key", GetDataCentralApiKey());
+        var jsonContent = new StringContent(JsonConvert.SerializeObject(tenantForEdit), Encoding.UTF8, "application/json");
 
-                var response = await client.PutAsync(requestUrl, jsonContent);
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("Tenant created successfully.");
-                }
-                else if (response.StatusCode == HttpStatusCode.InternalServerError)
-                {
-                    Console.WriteLine("Server encountered an internal error (500). Please try again later.");
-                }
-                else
-                {
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Failed to create tenant. Status Code: {(int)response.StatusCode}, Message: {responseContent}");
-                }
-            }
-        }
-        catch (HttpRequestException httpEx)
+        using (HttpClient client = new HttpClient())
         {
-            Console.WriteLine($"Request failed: {httpEx.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"An error occurred: {ex.Message}");
-        }
-    }
+            var key = GetDataCentralApiKey();
+            client.DefaultRequestHeaders.Add("x-api-key", GetDataCentralApiKey());
 
-    public async Task ChangeEditionForTenantAsync(int tenantId, int editionId)
-    {
-        var getTenantForEdit = await GetTenantForEdit(tenantId);
-        var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/UpdateTenant";
-        var requestBody = new EditTenantDto
-        {
-            Name = getTenantForEdit.Name,
-            IsActive = getTenantForEdit.IsActive,
-            TenancyName = getTenantForEdit.TenancyName,
-            EditionId = editionId,
-            IsInTrialPeriod = getTenantForEdit.IsInTrialPeriod,
-            ConnectionString = getTenantForEdit.ConnectionString,
-            SubscriptionEndDateUtc = getTenantForEdit.SubscriptionEndDateUtc
-        };
-
-        var jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-
-        try
-        {
-            using (HttpClient client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("x-api-key", GetDataCentralApiKey());
-
-                var response = await client.PutAsync(requestUrl, jsonContent);
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("Tenant created successfully.");
-                }
-                else if (response.StatusCode == HttpStatusCode.InternalServerError)
-                {
-                    Console.WriteLine("Server encountered an internal error (500). Please try again later.");
-                }
-                else
-                {
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Failed to create tenant. Status Code: {(int)response.StatusCode}, Message: {responseContent}");
-                }
-            }
-        }
-        catch (HttpRequestException httpEx)
-        {
-            // Handle HTTP request-related exceptions
-            Console.WriteLine($"Request failed: {httpEx.Message}");
-        }
-        catch (Exception ex)
-        {
-            // Handle other general exceptions
-            Console.WriteLine($"An error occurred: {ex.Message}");
+            var response = await client.PutAsync(requestUrl, jsonContent);
+            var content = await response.Content.ReadAsStringAsync();
+            response.EnsureSuccessStatusCode();
         }
     }
 
     
-    private async Task<GetTenantForEditDto> GetTenantForEdit(int tenantId)
+    private async Task<EditTenantDto> GetTenantForEditInternalAsync(int tenantId)
     {
-        // Construct the API URL with the tenant ID as a query parameter
-        var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/GetTenantForEdit?id={tenantId}";
+        var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/Tenant/GetTenantForEdit?id={tenantId}";
 
-        try
+        using (HttpClient client = new HttpClient())
         {
-            using (HttpClient client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("x-api-key", GetDataCentralApiKey());
+            var key = GetDataCentralApiKey();
+            client.DefaultRequestHeaders.Add("x-api-key", GetDataCentralApiKey());
 
-                // Send the GET request to the API URL
-                var response = await client.GetAsync(requestUrl);
+            var response = await client.GetAsync(requestUrl);
+            response.EnsureSuccessStatusCode();
 
-                // Check if the response is successful
-                if (response.IsSuccessStatusCode)
-                {
-                    // Read and deserialize the JSON response content
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    var tenantForEditDto = JsonConvert.DeserializeObject<GetTenantForEditDto>(responseContent);
+            var content = await response.Content.ReadAsStringAsync();
+            var serialized = JsonConvert.DeserializeObject<DataCentralGenericResponse<EditTenantDto>>(content);
+            return serialized.Result;
+        }
 
-                    // Return the deserialized object
-                    return tenantForEditDto;
-                }
-                else if (response.StatusCode == HttpStatusCode.InternalServerError)
-                {
-                    // Handle 500 internal server error
-                    Console.WriteLine("Server encountered an internal error (500). Please try again later.");
-                    return null;
-                }
-                else
-                {
-                    // Handle other non-success status codes
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Failed to retrieve tenant. Status Code: {(int)response.StatusCode}, Message: {responseContent}");
-                    return null;
-                }
-            }
-        }
-        catch (HttpRequestException httpEx)
-        {
-            // Handle HTTP request-related exceptions
-            Console.WriteLine($"Request failed: {httpEx.Message}");
-            return null;
-        }
-        catch (Exception ex)
-        {
-            // Handle other general exceptions
-            Console.WriteLine($"An error occurred: {ex.Message}");
-            return null;
-        }
     }
-}
-
-public class GetTenantForEditDto
-{
-    public int Id { get; set; }
-    public string TenancyName { get; set; }
-    public string Name { get; set; }
-    public string ConnectionString { get; set; }
-    public int? EditionId { get; set; }
-    public bool IsActive { get; set; }
-    public DateTime? SubscriptionEndDateUtc { get; set; }
-    public bool IsInTrialPeriod { get; set; }
 }
 
 public class CreateTenantDto
@@ -335,6 +273,7 @@ public class CreateTenantDto
 
 public class EditTenantDto
 {
+    public int Id { get; set; }
     public string TenancyName { get; set; }
     public string Name { get; set; }
     public string ConnectionString { get; set; }

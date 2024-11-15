@@ -212,35 +212,46 @@
 
                         }
 
-
-
-                        <dt class="col-sm-3 p-2 p10">
-                            @Html.DisplayName("Name for DataCentral tenant")
-                        </dt>
-                        <dd class="col-sm-9 p-2 p10" style="position: relative;">
-                            @Html.TextBoxFor(model => model.DataCentralTenantName, new { style = "width:400px; height: 34px;", id = "tenantNameInput", onkeyup = "checkTenantAvailability()" })
-
-                            <!-- Icons for availability status -->
-                            <i id="availabilityCheck" class="fa fa-check" style="color: green; display: none; font-size: 24px;"></i>
-                            <i id="availabilityXmark" class="fa fa-times" style="color: red; display: none; font-size: 24px;"></i>
-
-                            <!-- Spinner icon for loading state -->
-                            <i id="availabilitySpinner" class="fa fa-spinner fa-spin" style="color: gray; display: none; font-size: 24px;"></i>
-
-                            <!-- Availability message below input -->
-                            <div id="availabilityMessage" style="color: red; font-size: 0.9em; display: none; margin-top: 5px;"></div>
-                        </dd>
-
-                        <!-- URL Container that should appear only if the tenant name is available -->
-                        <div id="urlContainer" style="display: none; padding: 0;">
+                        @if (Model.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingFulfillmentStart)
+                        {
                             <dt class="col-sm-3 p-2 p10">
-                                Final tenant URL for your subscription
+                                @Html.DisplayName("Name for DataCentral tenant")
+                            </dt>
+                            <dd class="col-sm-9 p-2 p10" style="position: relative;">
+                                @Html.TextBoxFor(model => model.DataCentralTenantName, new { style = "width:400px; height: 34px;", id = "tenantNameInput", onkeyup = "checkTenantAvailability()" })
+
+                                <!-- Icons for availability status -->
+                                <i id="availabilityCheck" class="fa fa-check" style="color: green; display: none; font-size: 24px;"></i>
+                                <i id="availabilityXmark" class="fa fa-times" style="color: red; display: none; font-size: 24px;"></i>
+
+                                <!-- Spinner icon for loading state -->
+                                <i id="availabilitySpinner" class="fa fa-spinner fa-spin" style="color: gray; display: none; font-size: 24px;"></i>
+
+                                <!-- Availability message below input -->
+                                <div id="availabilityMessage" style="color: red; font-size: 0.9em; display: none; margin-top: 5px;"></div>
+                            </dd>
+
+                            <!-- URL Container that should appear only if the tenant name is available -->
+                            <div id="urlContainer" style="display: none; padding: 0;">
+                                <dt class="col-sm-3 p-2 p10">
+                                    Final tenant URL for your subscription
+                                </dt>
+                                <dd class="col-sm-9 p-2 p10">
+                                    <span id="tenantUrl" style="font-weight: bold; color: #007BFF;"></span>
+                                </dd>
+                            </div>
+                        }
+
+                        @if (Model.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && !string.IsNullOrEmpty(Model.DataCentralTenantName))
+                        {
+                            <dt class="col-sm-3 p-2 p10">
+                                @Html.DisplayName("DataCentral Tenant Name")
                             </dt>
                             <dd class="col-sm-9 p-2 p10">
-                                <span id="tenantUrl" style="font-weight: bold; color: #007BFF;"></span>
+                                @Html.DisplayFor(model => model.DataCentralTenantName)
+                                @Html.HiddenFor(model => model.DataCentralTenantName)
                             </dd>
-                        </div>
-
+                        }
                     </dl>
                 </div>
                 <div class="text-end">

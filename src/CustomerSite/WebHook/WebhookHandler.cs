@@ -93,6 +93,8 @@ public class WebHookHandler : IWebhookHandler
 
     private const string AcceptSubscriptionUpdates = "AcceptSubscriptionUpdates";
 
+    private readonly IDataCentralApiService dataCentralApiService;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="WebHookHandler" /> class.
     /// </summary>
@@ -123,7 +125,8 @@ public class WebHookHandler : IWebhookHandler
                           IEventsRepository eventsRepository, 
                           IApplicationConfigRepository applicationConfigRepository, 
                           IEmailTemplateRepository emailTemplateRepository, 
-                          IPlanEventsMappingRepository planEventsMappingRepository)
+                          IPlanEventsMappingRepository planEventsMappingRepository,
+                          IDataCentralApiService dataCentralApiService)
     {
         this.applicationLogRepository = applicationLogRepository;
         this.subscriptionsRepository = subscriptionsRepository;
@@ -154,6 +157,8 @@ public class WebHookHandler : IWebhookHandler
             offersRepository,
             emailService,
             this.loggerFactory.CreateLogger<NotificationStatusHandler>());
+
+        this.dataCentralApiService = dataCentralApiService;
     }
 
     /// <summary>
@@ -188,6 +193,9 @@ public class WebHookHandler : IWebhookHandler
         await this.applicationLogService.AddApplicationLog("Plan Successfully Changed.").ConfigureAwait(false);
         auditLog.NewValue = payload.PlanId;
         this.subscriptionsLogRepository.Save(auditLog);
+
+        await this.dataCentralApiService.UpdateTenantEditionForPlanChange(payload.SubscriptionId, payload.PlanId);
+
         await Task.CompletedTask;
     }
 
@@ -273,7 +281,9 @@ public class WebHookHandler : IWebhookHandler
             auditLog.NewValue = Convert.ToString(oldValue?.SubscriptionStatus);
         }
 
-        this.subscriptionsLogRepository.Save(auditLog); 
+        this.subscriptionsLogRepository.Save(auditLog);
+
+        await dataCentralApiService.EnableTenant(payload.SubscriptionId);
 
         await Task.CompletedTask;
     }
@@ -316,6 +326,8 @@ public class WebHookHandler : IWebhookHandler
             this.subscriptionsLogRepository.Save(auditLog);
         }
 
+        await dataCentralApiService.DisableTenant(payload.SubscriptionId);
+
         await Task.CompletedTask;
     }
 
@@ -345,6 +357,8 @@ public class WebHookHandler : IWebhookHandler
         }
 
         this.notificationStatusHandlers.Process(payload.SubscriptionId);
+
+        await dataCentralApiService.DisableTenant(payload.SubscriptionId);
 
         await Task.CompletedTask;
     }
