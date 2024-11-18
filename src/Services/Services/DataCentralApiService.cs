@@ -8,17 +8,20 @@ using Marketplace.SaaS.Accelerator.Services.Contracts;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Marketplace.SaaS.Accelerator.DataAccess.Services;
 
 namespace Marketplace.SaaS.Accelerator.Services.Services;
 public class DataCentralApiService : IDataCentralApiService
 {
-
+    private readonly IApplicationLogRepository applicationLogRepository;
     protected SaaSApiClientConfiguration ClientConfiguration { get; set; }
     private readonly IApplicationConfigRepository applicationConfigRepository;
     private readonly ILogger<DataCentralApiService> logger;
     private readonly IDataCentralTenantsRepository dataCentralTenantsRepository;
     private readonly IPlansRepository planRepository;
     private readonly IConfiguration configuration;
+
+    private readonly ApplicationLogService applicationLogService;
 
     private readonly string ApiUrlInfix = "/api/services/app";
 
@@ -28,7 +31,8 @@ public class DataCentralApiService : IDataCentralApiService
         ILogger<DataCentralApiService> logger,
         IDataCentralTenantsRepository dataCentralTenantsRepository,
         IPlansRepository planRepository,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IApplicationLogRepository applicationLogRepository)
     {        
         this.ClientConfiguration = clientConfiguration;
         this.applicationConfigRepository = applicationConfigRepository;
@@ -36,6 +40,9 @@ public class DataCentralApiService : IDataCentralApiService
         this.dataCentralTenantsRepository = dataCentralTenantsRepository;
         this.planRepository = planRepository;
         this.configuration = configuration;
+
+        this.applicationLogRepository = applicationLogRepository;
+        this.applicationLogService = new ApplicationLogService(this.applicationLogRepository);
     }
 
     private string GetApiUrl()
@@ -105,10 +112,14 @@ public class DataCentralApiService : IDataCentralApiService
     //Offer suspended due to bill not paid
     public async Task DisableTenant(Guid subscriptionId)
     {
+        await this.applicationLogService.AddApplicationLog("Inside disableTenant").ConfigureAwait(false);
         try
         {
+           
             var dataCentralTenant = this.dataCentralTenantsRepository.Get(subscriptionId);
+            await this.applicationLogService.AddApplicationLog("datacentraltenant" + dataCentralTenant.Name + dataCentralTenant.TenantId).ConfigureAwait(false);
             await SetTenantStatusInternalAsync(dataCentralTenant.TenantId, false);
+            await this.applicationLogService.AddApplicationLog("after caling set status").ConfigureAwait(false);
         }
         catch(Exception ex)
         {
@@ -196,6 +207,7 @@ public class DataCentralApiService : IDataCentralApiService
 
     private async Task SetTenantStatusInternalAsync(int tenantId, bool isActive)
     {
+        await this.applicationLogService.AddApplicationLog("inside settenantstatusinternalasync").ConfigureAwait(false);
         var tenantForEdit = await GetTenantForEditInternalAsync(tenantId);
         var requestUrl = $"{GetApiUrl()}{ApiUrlInfix}/Tenant/UpdateTenant";
 
@@ -203,15 +215,22 @@ public class DataCentralApiService : IDataCentralApiService
 
         var jsonContent = new StringContent(JsonConvert.SerializeObject(tenantForEdit), Encoding.UTF8, "application/json");
 
+        await this.applicationLogService.AddApplicationLog("1" + jsonContent.ToString()).ConfigureAwait(false);
+
         using (HttpClient client = new HttpClient())
         {
             // Set the x-api-key header
             var key = GetDataCentralApiKey();
+            await this.applicationLogService.AddApplicationLog("2").ConfigureAwait(false);
             client.DefaultRequestHeaders.Add("x-api-key", GetDataCentralApiKey());
+            await this.applicationLogService.AddApplicationLog("3").ConfigureAwait(false);
 
             var response = await client.PutAsync(requestUrl, jsonContent);
+            await this.applicationLogService.AddApplicationLog("4    " +  response.StatusCode).ConfigureAwait(false);
             var content = await response.Content.ReadAsStringAsync();
+            await this.applicationLogService.AddApplicationLog("5 " + content).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
+            await this.applicationLogService.AddApplicationLog("6").ConfigureAwait(false);
         }
     }
 
