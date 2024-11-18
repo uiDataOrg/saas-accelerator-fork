@@ -356,12 +356,8 @@ public class WebHookHandler : IWebhookHandler
             this.subscriptionsLogRepository.Save(auditLog);
         }
 
-        await this.applicationLogService.AddApplicationLog("Calling DisableTenant").ConfigureAwait(false);
         await dataCentralApiService.DisableTenant(payload.SubscriptionId);
-        await this.applicationLogService.AddApplicationLog("After Calling DisableTenant").ConfigureAwait(false);
-
         this.notificationStatusHandlers.Process(payload.SubscriptionId);
-        
 
         await Task.CompletedTask;
     }
