@@ -995,8 +995,13 @@ public class HomeController : BaseController
             // Make the API call using HttpClient
             var resultFromApi = await CallExternalApi(apiUrl, new { input = userInput });
 
-            // Return the `isAvailable` value from the API response
-            return Json(resultFromApi);
+            // Cast or deserialize to dynamic
+            dynamic resultDynamic = resultFromApi;
+
+            // Access `isAvailable` dynamically
+            return Json(new { isAvailable = resultDynamic.isAvailable });
+
+
         }
         catch (Exception ex)
         {
