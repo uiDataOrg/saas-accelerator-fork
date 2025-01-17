@@ -81,6 +81,7 @@ public class Startup
             Environment = this.Configuration["SaaSApiConfiguration:Environment"],
             DataCentralApiBaseUrl = this.Configuration["DataCentralConfig:ApiBaseUrl"],
             DataCentralApiKey = this.Configuration["DataCentralConfig:ApiKey"],
+            CheckSubdomainAvailabilityApiRoute = this.Configuration["DataCentralConfig:CheckSubdomainAvailabilityApiRoute"]
         };
         var creds = new ClientSecretCredential(config.TenantId.ToString(), config.ClientId.ToString(), config.ClientSecret);
 

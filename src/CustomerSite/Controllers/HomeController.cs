@@ -4,11 +4,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
 using Marketplace.SaaS.Accelerator.DataAccess.Entities;
+using Marketplace.SaaS.Accelerator.Services.Configurations;
 using Marketplace.SaaS.Accelerator.Services.Contracts;
 using Marketplace.SaaS.Accelerator.Services.Exceptions;
 using Marketplace.SaaS.Accelerator.Services.Helpers;
@@ -105,6 +108,7 @@ public class HomeController : BaseController
     private readonly IDataCentralApiService dataCentralApiService;
     private readonly IDataCentralTenantsRepository dataCentralTenantsRepository;
     private readonly EmailHelper emailHelper;
+    protected SaaSApiClientConfiguration ClientConfiguration { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HomeController" /> class.
@@ -144,7 +148,8 @@ public class HomeController : BaseController
         IWebNotificationService webNotificationService,
         IAppVersionService appVersionService,
         IDataCentralApiService dataCentralApiService,
-        IDataCentralTenantsRepository dataCentralTenantsRepository) : base(appVersionService)
+        IDataCentralTenantsRepository dataCentralTenantsRepository,
+        SaaSApiClientConfiguration clientConfiguration) : base(appVersionService)
     {
         this.apiService = apiService;
         this.subscriptionRepository = subscriptionRepo;
@@ -169,6 +174,7 @@ public class HomeController : BaseController
         this._webNotificationService = webNotificationService;
         this.dataCentralApiService = dataCentralApiService;
         this.dataCentralTenantsRepository = dataCentralTenantsRepository;
+        this.ClientConfiguration = clientConfiguration;
 
         this.emailHelper = new EmailHelper(applicationConfigRepository, subscriptionRepository, emailTemplateRepository, planEventsMappingRepository, eventsRepository);
 
@@ -561,6 +567,25 @@ public class HomeController : BaseController
         }
     }
 
+    private string CreateRandomTenantName()
+    {
+        const string chars = "abcdefghijklmnopqrstuvwxyz";
+
+        // Generate a random string of 5 alphabetic characters
+        string tenantName = "";
+        Random random = new Random();
+        for (int i = 0; i < 5; i++)
+        {
+            tenantName += chars[random.Next(chars.Length)];
+        }
+
+        // Generate a random number to append (between 1000 and 9999)
+        int randomNumber = random.Next(100, 999);
+
+        // Combine the string and number
+        return $"{tenantName}{randomNumber}";
+    }
+
     /// <summary>
     /// Subscriptions the operation.
     /// </summary>
@@ -582,6 +607,11 @@ public class HomeController : BaseController
             {
                 var userDetails = this.userRepository.GetPartnerDetailFromEmail(this.CurrentUserEmailAddress);
 
+                if(planId == "datacentral_freemium")
+                {
+                    tenantName = CreateRandomTenantName();
+                }
+
                 if (subscriptionId != default)
                 {
                     this.logger.Info("GetPartnerSubscription");
@@ -600,6 +630,7 @@ public class HomeController : BaseController
                         {
                             this.logger.Info(HttpUtility.HtmlEncode($"Save Subscription Parameters:  {JsonSerializer.Serialize(subscriptionResultExtension.SubscriptionParameters)}" ));
 
+                            //Todo figure out if there is some kind of dbcontext bug here. Concurrent threads ongoing
                             /// Custom addition
                             this.dataCentralTenantsRepository.Add(new DataCentralTenant()
                             {
@@ -639,8 +670,17 @@ public class HomeController : BaseController
                                     }
                                 }
 
-                                // Create tenant directly since automation is enabled
-                                await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
+                                //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
+                                if (true)
+                                {
+                                    // Create tenant directly since automation is enabled
+                                    await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
+                                }
+                                else
+                                {
+                                    //TODO TRIGGER AUTOMATION OF NEW INSTANCE
+                                }
+                                
 
                                 this.pendingActivationStatusHandlers.Process(subscriptionId);
                             }
@@ -677,8 +717,17 @@ public class HomeController : BaseController
                             this.subscriptionLogRepository.Save(auditLog);
                         }
 
-                        //Delete tenant here
-                        await this.dataCentralApiService.DisableTenant(subscriptionId);
+                        //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
+                        if (true)
+                        {
+                            //Tenants
+                            //Delete tenant here
+                            await this.dataCentralApiService.DisableTenant(subscriptionId);
+                        }
+                        else
+                        {
+                            //TODO DELETE/DISABLE INSTANCE HERE
+                        }
 
                         this.unsubscribeStatusHandlers.Process(subscriptionId);
                     }
@@ -751,7 +800,15 @@ public class HomeController : BaseController
                             {
                                 this.logger.Info(HttpUtility.HtmlEncode($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan : {subscriptionDetail.PlanId} UserId: ***** OperationId: {jsonResult.OperationId}."));
 
-                                await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
+                                //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
+                                if (true)
+                                {
+                                    await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
+                                }
+                                else
+                                {
+                                    //TODO SOMETHING FOR INSTANCES
+                                }
 
                                 await this.applicationLogService.AddApplicationLog($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan: {subscriptionDetail.PlanId} UserId: {currentUserId} OperationId: {jsonResult.OperationId}.").ConfigureAwait(false);
                             }
@@ -917,5 +974,70 @@ public class HomeController : BaseController
         }
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CheckSubdomainAvailability(string input)
+    {
+        try
+        {
+            // Extract the "input" value from the dynamic input
+            string userInput = input;
 
+            // Ensure the input is valid
+            if (string.IsNullOrEmpty(userInput))
+            {
+                return Json(new { isAvailable = false, sourceOfConflict = "invalid_input" });
+            }
+
+            // Replace with your logic to call the API using `apiUrl`
+            string apiUrl = this.ClientConfiguration.CheckSubdomainAvailabilityApiRoute;
+
+            // Make the API call using HttpClient
+            var resultFromApi = await CallExternalApi(apiUrl, new { input = userInput });
+
+            // Return the `isAvailable` value from the API response
+            return Json(resultFromApi);
+        }
+        catch (Exception ex)
+        {
+            // Log the error and return an appropriate response
+            this.logger.LogError($"Error in CheckSubdomainAvailability: {ex.Message}");
+            return Json(new { isAvailable = false, sourceOfConflict = "server_error" });
+        }
+    }
+
+
+    private async Task<object> CallExternalApi(string apiUrl, object payload)
+    {
+        using (var httpClient = new HttpClient())
+        {
+            try
+            {
+                // Serialize the payload to JSON
+                var jsonPayload = Newtonsoft.Json.JsonConvert.SerializeObject(payload);
+                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+
+                // Send the POST request
+                var response = await httpClient.PostAsync(apiUrl, content);
+
+                // Ensure the response is successful
+                response.EnsureSuccessStatusCode();
+
+                // Deserialize the response JSON
+                var responseString = await response.Content.ReadAsStringAsync();
+                var apiResponse = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseString);
+
+                return new
+                {
+                    isAvailable = (bool)apiResponse.isAvailable,
+                    sourceOfConflict = (string)apiResponse.sourceOfConflict
+                };
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError($"Error calling external API: {ex.Message}");
+                return new { isAvailable = false, sourceOfConflict = "api_error" };
+            }
+        }
+    }
 }

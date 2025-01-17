@@ -473,9 +473,17 @@ public class HomeController : BaseController
                     this.subscriptionLogRepository.Save(auditLog);
                 }
 
-                // Flow is PendingFulfillmentStart (user configures account) to PendingActivation (admin activates subscription) to Subscribed
+                //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
+                if (true) 
+                {
+                    // Flow is PendingFulfillmentStart (user configures account) to PendingActivation (admin activates subscription) to Subscribed
+                    await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
+                }
+                else
+                {
+                    //trigger new terraform automation
+                }
                 
-                await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
 
                 this.pendingActivationStatusHandlers.Process(subscriptionId);
             }
@@ -494,8 +502,17 @@ public class HomeController : BaseController
                 };
                 this.subscriptionLogRepository.Save(auditLog);
 
-                //Delete tenant here
-                await this.dataCentralApiService.DisableTenant(subscriptionId);
+
+                //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
+                if (true)
+                {
+                    //Delete tenant here
+                    await this.dataCentralApiService.DisableTenant(subscriptionId);
+                }
+                else
+                {
+                    //Disable delete tenant
+                }
 
                 this.unsubscribeStatusHandlers.Process(subscriptionId);
             }
@@ -792,8 +809,16 @@ public class HomeController : BaseController
                         {
                             this.logger.Info(HttpUtility.HtmlEncode($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan : {subscriptionDetail.PlanId} UserId: ***** OperationId: {jsonResult.OperationId}."));
 
-                            await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
-
+                            //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
+                            if (true)
+                            {
+                                await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
+                            }
+                            else
+                            {
+                                // todo instance stuff here
+                            }
+                            
                             await this.applicationLogService.AddApplicationLog($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan: {subscriptionDetail.PlanId} UserId: {currentUserId} OperationId: {jsonResult.OperationId}.").ConfigureAwait(false);
                         }
                         else
@@ -871,8 +896,16 @@ public class HomeController : BaseController
                             {
                                 this.logger.Info(HttpUtility.HtmlEncode($"Quantity Change Success. SubscriptionId: {subscriptionDetail.Id} ToQuantity: {subscriptionDetail.Quantity} UserId: ****** OperationId: {jsonResult.OperationId}."));
 
-                                await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
-
+                                //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
+                                if (true)
+                                {
+                                    await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
+                                }
+                                else
+                                {
+                                    //TODO INSTANCE STUFF HERE
+                                }
+                                
                                 await this.applicationLogService.AddApplicationLog($"Quantity Change Success. SubscriptionId: {subscriptionDetail.Id} ToQuantity: {subscriptionDetail.Quantity} UserId: {currentUserId} OperationId: {jsonResult.OperationId}.").ConfigureAwait(false);
                             }
                             else

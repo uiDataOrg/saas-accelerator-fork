@@ -25,14 +25,6 @@ public partial class Add_DataCentral_Tenant_Table : Migration
             {
                 table.PrimaryKey("PK_DataCentralTenants", x => x.Id);
             });
-
-
-        migrationBuilder.Sql(@$"
-            INSERT INTO ApplicationConfiguration
-	            ([Name],[Value],[Description])
-            VALUES
-	            ('DataCentralEditionId_P1','1','Id of edition in DataCentral P1 tenants are assigned to')
-        ");
     }
 
     /// <inheritdoc />
@@ -40,11 +32,5 @@ public partial class Add_DataCentral_Tenant_Table : Migration
     {
         migrationBuilder.DropTable(
            name: "DataCentralTenants");
-
-        migrationBuilder.Sql(@$"
-            DELETE FROM ApplicationConfiguration
-            WHERE [Name] = 'DataCentralEditionId_P1'
-        ");
-
     }
 }

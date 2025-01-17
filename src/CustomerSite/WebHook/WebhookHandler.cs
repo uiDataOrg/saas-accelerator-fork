@@ -283,7 +283,15 @@ public class WebHookHandler : IWebhookHandler
 
         this.subscriptionsLogRepository.Save(auditLog);
 
-        await dataCentralApiService.EnableTenant(payload.SubscriptionId);
+        //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
+        if (true)
+        {
+            await dataCentralApiService.EnableTenant(payload.SubscriptionId);
+        }
+        else
+        {
+            //TODO DELETE DISABLE INSTANCE
+        }
 
         await Task.CompletedTask;
     }
@@ -326,7 +334,16 @@ public class WebHookHandler : IWebhookHandler
             this.subscriptionsLogRepository.Save(auditLog);
         }
 
-        await dataCentralApiService.DisableTenant(payload.SubscriptionId);
+        //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
+        if (true)
+        {
+            await dataCentralApiService.DisableTenant(payload.SubscriptionId);
+        }
+        else
+        {
+            //TODO DELETE DISABLE INSTANCE
+        }
+        
 
         await Task.CompletedTask;
     }
@@ -356,7 +373,16 @@ public class WebHookHandler : IWebhookHandler
             this.subscriptionsLogRepository.Save(auditLog);
         }
 
-        await dataCentralApiService.DisableTenant(payload.SubscriptionId);
+        //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
+        if (true)
+        {
+            await dataCentralApiService.DisableTenant(payload.SubscriptionId);
+        }
+        else
+        {
+            //TODO DELETE DISABLE INSTANCE
+        }
+        
         this.notificationStatusHandlers.Process(payload.SubscriptionId);
 
         await Task.CompletedTask;

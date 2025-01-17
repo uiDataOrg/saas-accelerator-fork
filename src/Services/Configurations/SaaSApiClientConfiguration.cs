@@ -119,4 +119,6 @@ public class SaaSApiClientConfiguration
     public string DataCentralApiBaseUrl { get; set; }
 
     public string DataCentralApiKey { get; set; }
+
+    public string CheckSubdomainAvailabilityApiRoute { get; set; }
 }

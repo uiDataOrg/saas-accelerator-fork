@@ -1,6 +1,4 @@
-﻿@*@using Microsoft.Marketplace.SaasKit.Models*@
-
-@using Marketplace.SaaS.Accelerator.Services.Models
+﻿@using Marketplace.SaaS.Accelerator.Services.Models
 @model Marketplace.SaaS.Accelerator.Services.Models.SubscriptionResultExtension
 
 @{
@@ -212,7 +210,7 @@
 
                         }
 
-                        @if (Model.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingFulfillmentStart)
+                        @if (Model.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingFulfillmentStart && Model.PlanId != "datacentral_freemium")
                         {
                             <dt class="col-sm-3 p-2 p10">
                                 @Html.DisplayName("Name for DataCentral tenant")
@@ -305,40 +303,56 @@ else
 <script type="text/javascript">
 
     async function SubscriptionOperation(subscriptionId, planId, operation) {
-        const tenantName = document.getElementById("tenantNameInput").value;
+        let tenantName = '';
         console.log(subscriptionId);
-        console.log(tenantName);
 
-        if (!validateTenantName(tenantName)) {
-            swal({
-                title: "Required",
-                text: "Please fill out tenant name input",
-                icon: "warning"
-            });
-            return; // Exit the function if the tenant name is not valid
+        // If planId is not "datacentral_freemium", handle tenantName input
+        if (planId !== "datacentral_freemium") {
+            tenantName = document.getElementById("tenantNameInput").value;
+            console.log(tenantName);
+
+            if (!validateTenantName(tenantName)) {
+                swal({
+                    title: "Required",
+                    text: "Please fill out tenant name input",
+                    icon: "warning"
+                });
+                return; // Exit the function if the tenant name is not valid
+            }
+
+            const isAvailable = await isTenantAvailable(tenantName);
+            if (!isAvailable) {
+                swal({
+                    title: "Required",
+                    text: "Tenant name is taken, please select another one",
+                    icon: "warning"
+                });
+                return; // Exit the function if the tenant is not available
+            }
         }
 
-        const isAvailable = await isTenantAvailable(tenantName);
-        if (!isAvailable) {
-            swal({
-                title: "Required",
-                text: "Tenant name is taken, please select another one",
-                icon: "warning"
-            });
-            return; // Exit the function if the tenant is not available
-        }
-
+        // Proceed if validation passes
         if (validate()) {
             // Show the spinner overlay when validation passes
             document.getElementById('fullPageSpinner').classList.add('show');
 
             var formobject = $('#frmIndex').serialize();
             var csrftoken = $('input[name="__RequestVerificationToken"]').val();
+
+            // Ensure tenantName is included only if planId is not "datacentral_freemium"
+            var requestData = formobject +
+                "&subscriptionId=" + subscriptionId +
+                "&planId=" + planId +
+                "&operation=" + operation;
+            if (planId !== "datacentral_freemium") {
+                requestData += "&tenantName=" + tenantName;
+            }
+
             $.ajax({
                 url: '/Home/SubscriptionOperation',
                 type: 'POST',
                 headers: { RequestVerificationToken: csrftoken },
-                data: formobject + "&subscriptionId=" + subscriptionId + "&planId=" + planId + "&operation=" + operation + "&tenantName=" + tenantName,
+                data: requestData,
                 cache: false,
                 success: function (result) {
                     $('#divIndex').html(result);
@@ -397,7 +411,6 @@ else
                 availabilityMessage.style.display = "none";
 
                 // Check if tenant is available
-                //await new Promise(resolve => setTimeout(resolve, 3000));
                 const isAvailable = await isTenantAvailable(tenantName);
 
                 // Hide spinner after checking
@@ -434,20 +447,21 @@ else
     }
 
     function isTenantAvailable(tenantName) {
-        
+        var csrftoken = $('input[name="__RequestVerificationToken"]').val();
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: 'https://api.dev.datacentral.ai/api/services/app/Account/IsTenantAvailable',
+                url: "/Home/CheckSubdomainAvailability",
                 type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ tenancyName: tenantName }),
+                headers: { RequestVerificationToken: csrftoken },
+                data: { input: tenantName },
                 cache: false,
                 success: function (response) {
-                    resolve(response.result && response.result.state === 3);
+                    // Resolve the promise based on the response's isAvailable value
+                    resolve(response.isAvailable);
                 },
                 error: function (error) {
                     console.error("Error:", error);
-                    resolve(false);
+                    resolve(false); // Default to false on error
                 }
             });
         });
