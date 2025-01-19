@@ -424,7 +424,12 @@ else
 
                     // Show the URL container and update the URL
                     urlContainer.style.display = "flex";
-                    tenantUrl.textContent = `https://${tenantName}.dev.datacentral.ai`;
+
+                    const baseUrlTemplate = '@Model.DataCentralSubdomainUrlTemplate';
+                    const tenantUrlString = baseUrlTemplate.replace("{{subdomainName}}", tenantName);
+
+                    // Show the URL container and update the URL dynamically
+                    tenantUrl.textContent = tenantUrlString;
                 } else {
                     // Show x-mark icon, hide check icon
                     availabilityCheck.style.display = "none";

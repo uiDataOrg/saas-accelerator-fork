@@ -297,6 +297,7 @@ public class HomeController : BaseController
                         {
                             subscriptionExtension.DataCentralTenantName = datacentralTenant.Name;
                         }
+                        subscriptionExtension.DataCentralSubdomainUrlTemplate = ClientConfiguration.DataCentralSubdomainUrlTemplate;
                     }
                 }
                 else
@@ -630,15 +631,7 @@ public class HomeController : BaseController
                         {
                             this.logger.Info(HttpUtility.HtmlEncode($"Save Subscription Parameters:  {JsonSerializer.Serialize(subscriptionResultExtension.SubscriptionParameters)}" ));
 
-                            //Todo figure out if there is some kind of dbcontext bug here. Concurrent threads ongoing
-                            /// Custom addition
-                            this.dataCentralTenantsRepository.Add(new DataCentralTenant()
-                            {
-                                Name = tenantName,
-                                SubscriptionId = oldValue.Id,
-                            });
-                            ///
-
+                           
                             if (subscriptionResultExtension.SubscriptionParameters != null && subscriptionResultExtension.SubscriptionParameters.Count() > 0)
                             {
                                 var inputParms = subscriptionResultExtension.SubscriptionParameters.ToList().Where(s => s.Type.ToLower() == "input");
@@ -670,11 +663,17 @@ public class HomeController : BaseController
                                     }
                                 }
 
-                                //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
-                                if (true)
+                                if (oldValue.OfferId == ClientConfiguration.DataCentralTenantOfferId)
                                 {
                                     // Create tenant directly since automation is enabled
                                     await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
+
+                                    //Todo figure out if there is some kind of dbcontext bug here. Concurrent threads ongoing
+                                    this.dataCentralTenantsRepository.Add(new DataCentralTenant()
+                                    {
+                                        Name = tenantName,
+                                        SubscriptionId = oldValue.Id,
+                                    });
                                 }
                                 else
                                 {

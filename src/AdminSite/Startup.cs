@@ -84,6 +84,9 @@ public class Startup
             IsAdminPortalMultiTenant = this.Configuration["SaaSApiConfiguration:IsAdminPortalMultiTenant"],
             DataCentralApiBaseUrl = this.Configuration["DataCentralConfig:ApiBaseUrl"],
             DataCentralApiKey = this.Configuration["DataCentralConfig:ApiKey"],
+            //CheckSubdomainAvailabilityApiRoute = this.Configuration["DataCentralConfig:CheckSubdomainAvailabilityApiRoute"],
+            //DataCentralTenantOfferId = this.Configuration["DataCentralConfig:TenantOfferId"],
+            //DataCentralEnterpriseOfferId = this.Configuration["DataCentralConfig:EnterpriseOfferId"]
         };
         var knownUsers = new KnownUsersModel()
         {
