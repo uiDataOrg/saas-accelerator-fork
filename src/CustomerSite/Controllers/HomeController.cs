@@ -663,17 +663,17 @@ public class HomeController : BaseController
                                     }
                                 }
 
-                                if (oldValue.OfferId == ClientConfiguration.DataCentralTenantOfferId)
+                                if (oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId))
                                 {
-                                    // Create tenant directly since automation is enabled
-                                    await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
-
                                     //Todo figure out if there is some kind of dbcontext bug here. Concurrent threads ongoing
                                     this.dataCentralTenantsRepository.Add(new DataCentralTenant()
                                     {
                                         Name = tenantName,
                                         SubscriptionId = oldValue.Id,
                                     });
+
+                                    // Create tenant directly since automation is enabled
+                                    await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
                                 }
                                 else
                                 {
