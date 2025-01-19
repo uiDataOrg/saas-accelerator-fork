@@ -631,7 +631,13 @@ public class HomeController : BaseController
                         {
                             this.logger.Info(HttpUtility.HtmlEncode($"Save Subscription Parameters:  {JsonSerializer.Serialize(subscriptionResultExtension.SubscriptionParameters)}" ));
 
-                           
+                            //Todo figure out if there is some kind of dbcontext bug here. Concurrent threads ongoing
+                            this.dataCentralTenantsRepository.Add(new DataCentralTenant()
+                            {
+                                Name = tenantName,
+                                SubscriptionId = oldValue.Id,
+                            });
+
                             if (subscriptionResultExtension.SubscriptionParameters != null && subscriptionResultExtension.SubscriptionParameters.Count() > 0)
                             {
                                 var inputParms = subscriptionResultExtension.SubscriptionParameters.ToList().Where(s => s.Type.ToLower() == "input");
@@ -665,13 +671,6 @@ public class HomeController : BaseController
 
                                 if (oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId))
                                 {
-                                    //Todo figure out if there is some kind of dbcontext bug here. Concurrent threads ongoing
-                                    this.dataCentralTenantsRepository.Add(new DataCentralTenant()
-                                    {
-                                        Name = tenantName,
-                                        SubscriptionId = oldValue.Id,
-                                    });
-
                                     // Create tenant directly since automation is enabled
                                     await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
                                 }
