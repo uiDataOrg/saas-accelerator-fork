@@ -129,15 +129,15 @@ public class EmailHelper
         return FinalizeContentEmail(emailTemplateData.Subject,body, string.Empty, string.Empty, toReceipents, false);
     }
 
-    public EmailContentModel PrepareUserActivatesSubscriptionNotificationForAdminEmailContent(Guid subscriptionID, string planId, string newlyCreatedTenantName)
-    {
-        //TODO torecipients should be the adminlist for AdminPortal
-        string toReceipents = "filippus@uidata.com";
-        //TODO subject and body
-        var subject = "NEW SUBSCRIPTION IN MARKETPLACE";
-        var body = "New subscription was just activated. SubscriptionId:" + subscriptionID + " ----- PlanId: " + planId + "-----------" + " New Tenant name" + newlyCreatedTenantName;
-        return FinalizeContentEmail(subject, body, string.Empty, string.Empty, toReceipents, false);
-    }
+    //public EmailContentModel PrepareUserActivatesSubscriptionNotificationForAdminEmailContent(Guid subscriptionID, string planId, string newlyCreatedTenantName)
+    //{
+    //    //TODO torecipients should be the adminlist for AdminPortal
+    //    string toReceipents = "filippus@uidata.com";
+    //    //TODO subject and body
+    //    var subject = "NEW SUBSCRIPTION IN MARKETPLACE";
+    //    var body = "New subscription was just activated. SubscriptionId:" + subscriptionID + " ----- PlanId: " + planId + "-----------" + " New Tenant name" + newlyCreatedTenantName;
+    //    return FinalizeContentEmail(subject, body, string.Empty, string.Empty, toReceipents, false);
+    //}
 
 
     private EmailContentModel FinalizeContentEmail(string subject, string body, string ccEmails,string bcEmails, string toEmails, bool copyToCustomer)

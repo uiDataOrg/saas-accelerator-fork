@@ -608,7 +608,7 @@ public class HomeController : BaseController
             {
                 var userDetails = this.userRepository.GetPartnerDetailFromEmail(this.CurrentUserEmailAddress);
 
-                if(planId == "datacentral_freemium")
+                if(planId == "freemium")
                 {
                     tenantName = CreateRandomTenantName();
                 }
@@ -687,8 +687,8 @@ public class HomeController : BaseController
                                 this.pendingFulfillmentStatusHandlers.Process(subscriptionId);
                             }
 
-                            var emailContent = this.emailHelper.PrepareUserActivatesSubscriptionNotificationForAdminEmailContent(subscriptionId, oldValue.PlanId, tenantName);
-                            this.emailService.SendEmail(emailContent);
+                            //var emailContent = this.emailHelper.PrepareUserActivatesSubscriptionNotificationForAdminEmailContent(subscriptionId, oldValue.PlanId, tenantName);
+                            //this.emailService.SendEmail(emailContent);
 
                             await _webNotificationService.PushExternalWebNotificationAsync(subscriptionId, subscriptionResultExtension.SubscriptionParameters);
                         }
