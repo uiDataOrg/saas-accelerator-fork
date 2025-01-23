@@ -80,10 +80,10 @@ public class DataCentralApiService : IDataCentralApiService
             EmailAddress = customerEmailAddress,
             MarketplaceSubscriptionDate = DateTime.UtcNow,
             MarketplaceSubscriptionId = subscriptionId,
-            TriggerGithubWorkflows = false,
+            TriggerGithubWorkflows = true,
             InsertIntoDb = true,
-            UpdateSettings = false,
-            UpdateHostAdmin = false
+            UpdateSettings = true,
+            UpdateHostAdmin = true
         };
 
         using (var httpClient = new HttpClient())
