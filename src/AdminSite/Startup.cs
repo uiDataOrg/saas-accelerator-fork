@@ -245,6 +245,6 @@ public class Startup
         services.AddScoped<SaaSClientLogger<ApplicationLogController>>();
         services.AddScoped<SaaSClientLogger<ApplicationConfigController>>();
         services.AddScoped<SaaSClientLogger<SchedulerController>>();
-        services.AddScoped<IDataCentralTenantsRepository, DataCentralTenantsRepository>();
+        services.AddScoped<IDataCentralPurchasesRepository, DataCentralPurchasesRepository>();
     }
 }

@@ -6,34 +6,34 @@ using System.Linq;
 
 
 namespace Marketplace.SaaS.Accelerator.DataAccess.Services;
-public class DataCentralTenantsRepository : IDataCentralTenantsRepository
+public class DataCentralPurchasesRepository : IDataCentralPurchasesRepository
 {
     private readonly SaasKitContext context;
 
-    public DataCentralTenantsRepository(SaasKitContext context)
+    public DataCentralPurchasesRepository(SaasKitContext context)
     {
         this.context = context;
     }
 
-    public void Add(DataCentralTenant tenant)
+    public void Add(DataCentralPurchase tenant)
     {
         if(tenant != null)
         {
-            this.context.DataCentralTenants.Add(tenant);
+            this.context.DataCentralPurchases.Add(tenant);
             this.context.SaveChanges();
         }
     }
 
-    public DataCentralTenant Get(Guid subscriptionId)
+    public DataCentralPurchase Get(Guid subscriptionId)
     {
-        return this.context.DataCentralTenants.Where(dt => dt.SubscriptionId == subscriptionId).FirstOrDefault();
+        return this.context.DataCentralPurchases.Where(dt => dt.SubscriptionId == subscriptionId).FirstOrDefault();
     }
 
-    public void Update(DataCentralTenant tenant)
+    public void Update(DataCentralPurchase tenant)
     {
         if(tenant != null)
         {
-            this.context.DataCentralTenants.Update(tenant);
+            this.context.DataCentralPurchases.Update(tenant);
             this.context.SaveChanges();
         }
     }

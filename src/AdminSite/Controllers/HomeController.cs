@@ -113,7 +113,7 @@ public class HomeController : BaseController
     private SaaSApiClientConfiguration saaSApiClientConfiguration;
 
     private readonly IDataCentralApiService dataCentralApiService;
-    private readonly IDataCentralTenantsRepository dataCentralTenantsRepository;
+    private readonly IDataCentralPurchasesRepository dataCentralPurchasesRepository;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HomeController" /> class.
@@ -163,7 +163,7 @@ public class HomeController : BaseController
         ISAGitReleasesService sAGitReleasesService, 
         SaaSClientLogger<HomeController> logger,
         IDataCentralApiService dataCentralApiService,
-        IDataCentralTenantsRepository dataCentralTenantsRepository) : base(applicationConfigRepository, appVersionService)
+        IDataCentralPurchasesRepository dataCentralPurchasesRepository) : base(applicationConfigRepository, appVersionService)
     {
         this.billingApiService = billingApiService;
         this.subscriptionRepo = subscriptionRepo;
@@ -191,7 +191,7 @@ public class HomeController : BaseController
         this.saaSApiClientConfiguration = saaSApiClientConfiguration;
         this.sAGitReleasesService = sAGitReleasesService;
         this.dataCentralApiService = dataCentralApiService;
-        this.dataCentralTenantsRepository = dataCentralTenantsRepository;
+        this.dataCentralPurchasesRepository = dataCentralPurchasesRepository;
 
         this.pendingActivationStatusHandlers = new PendingActivationStatusHandler(
             fulfillApiService,
@@ -389,9 +389,10 @@ public class HomeController : BaseController
             var detailsFromAPI = await this.fulfillApiService.GetSubscriptionByIdAsync(subscriptionId).ConfigureAwait(false);
             subscriptionDetail.Beneficiary = detailsFromAPI.Beneficiary;
 
-            var tenant = this.dataCentralTenantsRepository.Get(subscriptionDetail.Id);
-            subscriptionDetail.DataCentralTenantName = tenant.Name;
-            subscriptionDetail.DataCentralTenantId = tenant.Id;
+            var dataCentralPurchase = this.dataCentralPurchasesRepository.Get(subscriptionDetail.Id);
+            
+            subscriptionDetail.IsSubscriptionForTenant = dataCentralPurchase.TypeOfPurchase == "tenant";
+            subscriptionDetail.DataCentralPurchaseEnvironmentName = dataCentralPurchase.EnvironmentName;
         }
 
         return this.View(subscriptionDetail);

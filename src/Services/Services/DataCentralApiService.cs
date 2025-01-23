@@ -8,6 +8,7 @@ using Marketplace.SaaS.Accelerator.Services.Contracts;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Marketplace.SaaS.Models;
 
 namespace Marketplace.SaaS.Accelerator.Services.Services;
 public class DataCentralApiService : IDataCentralApiService
@@ -15,7 +16,7 @@ public class DataCentralApiService : IDataCentralApiService
     protected SaaSApiClientConfiguration ClientConfiguration { get; set; }
     private readonly IApplicationConfigRepository applicationConfigRepository;
     private readonly ILogger<DataCentralApiService> logger;
-    private readonly IDataCentralTenantsRepository dataCentralTenantsRepository;
+    private readonly IDataCentralPurchasesRepository dataCentralPurchaseRepository;
     private readonly IPlansRepository planRepository;
     private readonly IConfiguration configuration;
 
@@ -25,14 +26,14 @@ public class DataCentralApiService : IDataCentralApiService
         SaaSApiClientConfiguration clientConfiguration, 
         IApplicationConfigRepository applicationConfigRepository, 
         ILogger<DataCentralApiService> logger,
-        IDataCentralTenantsRepository dataCentralTenantsRepository,
+        IDataCentralPurchasesRepository dataCentralPurchaseRepository,
         IPlansRepository planRepository,
         IConfiguration configuration)
     {        
         this.ClientConfiguration = clientConfiguration;
         this.applicationConfigRepository = applicationConfigRepository;
         this.logger = logger;
-        this.dataCentralTenantsRepository = dataCentralTenantsRepository;
+        this.dataCentralPurchaseRepository = dataCentralPurchaseRepository;
         this.planRepository = planRepository;
         this.configuration = configuration;
     }
@@ -68,9 +69,44 @@ public class DataCentralApiService : IDataCentralApiService
         return editionId;
     }
 
+    public async Task TriggerInstanceAutomation(Guid subscriptionId, string customerEmailAddress, string environmentName)
+    {
+        var triggerAutomationUrl = configuration[$"DataCentralConfig:TriggerInstanceAutomationApiRoute"];
+        var input = new InstanceAutomationInputDto()
+        {
+            EnvironmentName = environmentName,
+            EnvironmentNameInfix = "mp",
+            Location = "northeurope",
+            EmailAddress = customerEmailAddress,
+            MarketplaceSubscriptionDate = DateTime.UtcNow,
+            MarketplaceSubscriptionId = subscriptionId,
+            TriggerGithubWorkflows = false,
+            InsertIntoDb = false,
+            UpdateSettings = false,
+            UpdateHostAdmin = false
+        };
+
+        using (var httpClient = new HttpClient())
+        {
+            //httpClient.DefaultRequestHeaders.Add("SubscriptionId", subscriptionId.ToString());
+
+            var jsonContent = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+
+            var response = await httpClient.PostAsync(triggerAutomationUrl, jsonContent);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                // Handle error response
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Failed to trigger instance automation: {errorMessage}");
+            }
+        }
+    }
+
+
     public async Task CreateTenantForNewSubscription(Guid subscriptionId, string customerEmailAddress, string customerName, string planId)
     {
-        var tenant = this.dataCentralTenantsRepository.Get(subscriptionId);
+        var tenant = this.dataCentralPurchaseRepository.Get(subscriptionId);
         if (tenant == null)
         {
             throw new Exception("Tenant not found");
@@ -78,16 +114,16 @@ public class DataCentralApiService : IDataCentralApiService
 
         var editionId = GetEditionIdByPlanId(planId);
 
-        await CreateTenantAsyncInternal(tenant.Name, customerEmailAddress, customerName, editionId);
+        await CreateTenantAsyncInternal(tenant.EnvironmentName, customerEmailAddress, customerName, editionId);
 
-        var newlyCreatedTenantId = await GetTenantIdByNameInternalAsync(tenant.Name);
+        var newlyCreatedTenantId = await GetTenantIdByNameInternalAsync(tenant.EnvironmentName);
         tenant.TenantId = newlyCreatedTenantId;
-        this.dataCentralTenantsRepository.Update(tenant);
+        this.dataCentralPurchaseRepository.Update(tenant);
     }
 
     public async Task UpdateTenantEditionForPlanChange(Guid subscriptionId, string newPlanId)
     {
-        var tenant = this.dataCentralTenantsRepository.Get(subscriptionId);
+        var tenant = this.dataCentralPurchaseRepository.Get(subscriptionId);
         if (tenant == null)
         {
             throw new ArgumentException("Tenant not found for the given subscription ID.", nameof(subscriptionId));
@@ -95,7 +131,7 @@ public class DataCentralApiService : IDataCentralApiService
 
         var editionId = GetEditionIdByPlanId(newPlanId);
 
-        await ChangeEditionForTenantInternalAsync(tenant.TenantId, editionId);
+        await ChangeEditionForTenantInternalAsync((int)tenant.TenantId, editionId);
     }
 
 
@@ -106,8 +142,8 @@ public class DataCentralApiService : IDataCentralApiService
     {
         try
         {
-            var dataCentralTenant = this.dataCentralTenantsRepository.Get(subscriptionId);
-            await SetTenantStatusInternalAsync(dataCentralTenant.TenantId, false);
+            var dataCentralTenant = this.dataCentralPurchaseRepository.Get(subscriptionId);
+            await SetTenantStatusInternalAsync((int)dataCentralTenant.TenantId, false);
         }
         catch(Exception ex)
         {
@@ -122,8 +158,8 @@ public class DataCentralApiService : IDataCentralApiService
     {
         try
         {
-            var dataCentralTenant = this.dataCentralTenantsRepository.Get(subscriptionId);
-            await SetTenantStatusInternalAsync(dataCentralTenant.TenantId, true);
+            var dataCentralTenant = this.dataCentralPurchaseRepository.Get(subscriptionId);
+            await SetTenantStatusInternalAsync((int)dataCentralTenant.TenantId, true);
         }
         catch(Exception ex)
         {
@@ -253,6 +289,9 @@ public class DataCentralApiService : IDataCentralApiService
         }
 
     }
+
+
+
 }
 
 public class CreateTenantDto
@@ -297,5 +336,19 @@ public class IsTenantAvailableOutput
 public class DataCentralGenericResponse<T>
 {
     public T Result { get; set; }
+}
+
+public class InstanceAutomationInputDto()
+{
+    public string EnvironmentName { get; set; }
+    public string Location { get; set; }
+    public string EnvironmentNameInfix { get; set; }
+    public string EmailAddress { get; set; }
+    public DateTime MarketplaceSubscriptionDate { get; set; }
+    public Guid? MarketplaceSubscriptionId { get; set; }
+    public bool? TriggerGithubWorkflows { get; set; } = false;
+    public bool? InsertIntoDb { get; set; } = false;
+    public bool? UpdateSettings { get; set; } = false;
+    public bool? UpdateHostAdmin { get; set; } = false;
 }
 

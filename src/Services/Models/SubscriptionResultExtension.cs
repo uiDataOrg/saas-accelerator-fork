@@ -77,9 +77,13 @@ public class SubscriptionResultExtension : SubscriptionResult
     /// <summary>
     /// Custom addition
     /// </summary>
-    public string DataCentralTenantName { get; set; }
+    //public string DataCentralTenantName { get; set; }
 
-    public int DataCentralTenantId { get; set; }
+    public bool IsSubscriptionForTenant { get; set; }
+
+    public string DataCentralPurchaseEnvironmentName { get; set; }
+
+    //public int DataCentralTenantId { get; set; }
 
     public string DataCentralSubdomainUrlTemplate { get; set; }
 }

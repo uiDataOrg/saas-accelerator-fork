@@ -106,7 +106,7 @@ public class HomeController : BaseController
     private UserService userService;
 
     private readonly IDataCentralApiService dataCentralApiService;
-    private readonly IDataCentralTenantsRepository dataCentralTenantsRepository;
+    private readonly IDataCentralPurchasesRepository dataCentralPurchasesRepository;
     private readonly EmailHelper emailHelper;
     protected SaaSApiClientConfiguration ClientConfiguration { get; set; }
 
@@ -148,7 +148,7 @@ public class HomeController : BaseController
         IWebNotificationService webNotificationService,
         IAppVersionService appVersionService,
         IDataCentralApiService dataCentralApiService,
-        IDataCentralTenantsRepository dataCentralTenantsRepository,
+        IDataCentralPurchasesRepository dataCentralPurchasesRepository,
         SaaSApiClientConfiguration clientConfiguration) : base(appVersionService)
     {
         this.apiService = apiService;
@@ -173,7 +173,7 @@ public class HomeController : BaseController
         this.loggerFactory = loggerFactory;
         this._webNotificationService = webNotificationService;
         this.dataCentralApiService = dataCentralApiService;
-        this.dataCentralTenantsRepository = dataCentralTenantsRepository;
+        this.dataCentralPurchasesRepository = dataCentralPurchasesRepository;
         this.ClientConfiguration = clientConfiguration;
 
         this.emailHelper = new EmailHelper(applicationConfigRepository, subscriptionRepository, emailTemplateRepository, planEventsMappingRepository, eventsRepository);
@@ -292,11 +292,13 @@ public class HomeController : BaseController
                         subscriptionExtension.IsAutomaticProvisioningSupported = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("IsAutomaticProvisioningSupported"));
                         subscriptionExtension.AcceptSubscriptionUpdates = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("AcceptSubscriptionUpdates"));
 
-                        var datacentralTenant = this.dataCentralTenantsRepository.Get(newSubscription.SubscriptionId);
-                        if (subscriptionExtension.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && datacentralTenant != null)
+                        var dataCentralPurchase = this.dataCentralPurchasesRepository.Get(newSubscription.SubscriptionId);
+                        if (subscriptionExtension.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && dataCentralPurchase != null)
                         {
-                            subscriptionExtension.DataCentralTenantName = datacentralTenant.Name;
+                            
+                            subscriptionExtension.DataCentralPurchaseEnvironmentName = dataCentralPurchase.EnvironmentName;
                         }
+                        subscriptionExtension.IsSubscriptionForTenant = subscriptionExtension.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
                         subscriptionExtension.DataCentralSubdomainUrlTemplate = ClientConfiguration.DataCentralSubdomainUrlTemplate;
                     }
                 }
@@ -599,7 +601,7 @@ public class HomeController : BaseController
     /// </returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SubscriptionOperationAsync(SubscriptionResultExtension subscriptionResultExtension, Guid subscriptionId, string planId, string operation, string tenantName = null)
+    public async Task<IActionResult> SubscriptionOperationAsync(SubscriptionResultExtension subscriptionResultExtension, Guid subscriptionId, string planId, string operation, string environmentName = null)
     {
         this.logger.Info(HttpUtility.HtmlEncode($"Home Controller / SubscriptionOperation subscriptionId:{subscriptionId} :: planId : {planId} :: operation:{operation}"));
         if (this.User.Identity.IsAuthenticated)
@@ -608,11 +610,8 @@ public class HomeController : BaseController
             {
                 var userDetails = this.userRepository.GetPartnerDetailFromEmail(this.CurrentUserEmailAddress);
 
-                if(planId == "freemium")
-                {
-                    tenantName = CreateRandomTenantName();
-                }
-
+                
+                bool isCreatingTenant = true;
                 if (subscriptionId != default)
                 {
                     this.logger.Info("GetPartnerSubscription");
@@ -622,6 +621,14 @@ public class HomeController : BaseController
                         this.logger.LogError($"Cannot find subscription or subscription associated to the current user");
                         return this.RedirectToAction(nameof(this.Index));
                     }
+
+                    isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+
+                    if (planId == "freemium" && isCreatingTenant)
+                    {
+                        environmentName = CreateRandomTenantName();
+                    }
+
                     Plans planDetail = this.planRepository.GetById(oldValue.PlanId);
                     this.logger.Info("GetUserIdFromEmailAddress");
                     var currentUserId = this.userService.GetUserIdFromEmailAddress(this.CurrentUserEmailAddress);
@@ -632,11 +639,14 @@ public class HomeController : BaseController
                             this.logger.Info(HttpUtility.HtmlEncode($"Save Subscription Parameters:  {JsonSerializer.Serialize(subscriptionResultExtension.SubscriptionParameters)}" ));
 
                             //Todo figure out if there is some kind of dbcontext bug here. Concurrent threads ongoing
-                            this.dataCentralTenantsRepository.Add(new DataCentralTenant()
+
+                            this.dataCentralPurchasesRepository.Add(new DataCentralPurchase()
                             {
-                                Name = tenantName,
+                                EnvironmentName = environmentName,
                                 SubscriptionId = oldValue.Id,
+                                TypeOfPurchase = isCreatingTenant ? "tenant" : "instance"
                             });
+                            
 
                             if (subscriptionResultExtension.SubscriptionParameters != null && subscriptionResultExtension.SubscriptionParameters.Count() > 0)
                             {
@@ -669,7 +679,7 @@ public class HomeController : BaseController
                                     }
                                 }
 
-                                if (oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId))
+                                if (isCreatingTenant)
                                 {
                                     // Create tenant directly since automation is enabled
                                     await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
@@ -677,13 +687,15 @@ public class HomeController : BaseController
                                 else
                                 {
                                     //TODO TRIGGER AUTOMATION OF NEW INSTANCE
+                                    await this.dataCentralApiService.TriggerInstanceAutomation(subscriptionId, oldValue.CustomerEmailAddress, environmentName);
                                 }
-                                
-
+                                //Change from PendingActivation to Subscribed
                                 this.pendingActivationStatusHandlers.Process(subscriptionId);
+
                             }
                             else
                             {
+                                //Change from PendingFulfillmentStart to PendingActivation
                                 this.pendingFulfillmentStatusHandlers.Process(subscriptionId);
                             }
 
@@ -731,7 +743,11 @@ public class HomeController : BaseController
                     }
                 }
 
-                this.notificationStatusHandlers.Process(subscriptionId);
+
+                if (isCreatingTenant)
+                {
+                    this.notificationStatusHandlers.Process(subscriptionId);
+                }
 
                 return this.RedirectToAction(nameof(this.ProcessMessage), new { action = operation, status = operation });
             }
@@ -956,11 +972,14 @@ public class HomeController : BaseController
                 subscriptionDetail.SubscriptionParameters = this.subscriptionService.GetSubscriptionsParametersById(subscriptionId, planDetails.PlanGuid);
                 subscriptionDetail.IsAutomaticProvisioningSupported = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("IsAutomaticProvisioningSupported"));
 
-                var datacentralTenant = this.dataCentralTenantsRepository.Get(subscriptionDetail.Id);
-                if (subscriptionDetail.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && datacentralTenant != null)
+                var dataCentralPurchase = this.dataCentralPurchasesRepository.Get(subscriptionDetail.Id);
+                if (subscriptionDetail.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && dataCentralPurchase != null)
                 {
-                    subscriptionDetail.DataCentralTenantName = datacentralTenant.Name;
+                    
+                    subscriptionDetail.DataCentralPurchaseEnvironmentName = dataCentralPurchase.EnvironmentName;
                 }
+                subscriptionDetail.IsSubscriptionForTenant = subscriptionDetail.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+                subscriptionDetail.DataCentralSubdomainUrlTemplate = ClientConfiguration.DataCentralSubdomainUrlTemplate;
             }
 
             return this.View("Index", subscriptionDetail);
@@ -971,6 +990,62 @@ public class HomeController : BaseController
             return this.View("Error", ex);
         }
     }
+
+    [HttpPost]
+    [IgnoreAntiforgeryToken]
+    public IActionResult InstanceAutomationWebhook([FromBody] InstanceAutomationWebhookDto dto)
+    {
+        // Retrieve the salt
+        var salt = Environment.GetEnvironmentVariable("WebhookSalt") ?? "defaultSaltValue";
+
+        // Recreate the NotSoSecureKey using the provided subscriptionId and salt
+        var expectedKey = GenerateNotSoSecureKey(dto.SubscriptionId.ToString(), salt);
+
+        // Authenticate the provided NotSoSecureKey
+        if (dto.NotSoSecureKey != expectedKey)
+        {
+            logger.LogError($"Authentication failed for SubscriptionId: {dto.SubscriptionId}. Invalid NotSoSecureKey.");
+            return Unauthorized("Invalid NotSoSecureKey.");
+        }
+
+        if (!dto.Success)
+        {
+            // Handle failure case, e.g., log and send alert
+            logger.LogError($"Instance automation failed for SubscriptionId: {dto.SubscriptionId}");
+            return StatusCode(500, "Instance automation failed.");
+        }
+
+        // Cross-reference and update environmentId
+        var purchasedInstance = this.dataCentralPurchasesRepository.Get(dto.SubscriptionId);
+        if (purchasedInstance != null)
+        {
+            purchasedInstance.EnvironmentId = dto.EnvironmentId;
+            this.dataCentralPurchasesRepository.Update(purchasedInstance);
+        }
+
+        // Process pending activation and notification status handlers;
+        this.notificationStatusHandlers.Process(dto.SubscriptionId);
+
+        return Ok("Instance automation completed successfully.");
+    }
+
+    private static string GenerateNotSoSecureKey(string subscriptionId, string salt)
+    {
+        // Combine the SubscriptionId with the salt
+        var input = $"{subscriptionId}:{salt}";
+
+        // Hash the combined string
+        using (var sha256 = System.Security.Cryptography.SHA256.Create())
+        {
+            var bytes = Encoding.UTF8.GetBytes(input);
+            var hash = sha256.ComputeHash(bytes);
+
+            // Convert the hash to a hexadecimal string
+            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        }
+    }
+
+
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -1043,4 +1118,12 @@ public class HomeController : BaseController
             }
         }
     }
+}
+
+public class InstanceAutomationWebhookDto
+{
+    public Guid SubscriptionId { get; set; }
+    public bool Success { get; set; }
+    public int EnvironmentId { get; set; }
+    public string NotSoSecureKey { get; set; }
 }

@@ -6,20 +6,23 @@ using System;
 namespace Marketplace.SaaS.Accelerator.DataAccess.Migrations;
 
 /// <inheritdoc />
-public partial class Add_DataCentral_Tenant_Table : Migration
+public partial class Add_DataCentralPurchases_Table : Migration
 {
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.CreateTable(
-            name: "DataCentralTenants",
+            name: "DataCentralPurchases",
             columns: table => new
             {
                 Id = table.Column<int>(type: "int", nullable: false)
                     .Annotation("SqlServer:Identity", "1, 1"),
                 SubscriptionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
-                TenantId = table.Column<int>(type: "int", nullable: false)
+                EnvironmentName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                TypeOfPurchase = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false), 
+
+                TenantId = table.Column<int>(type: "int", nullable: true),
+                EnvironmentId = table.Column<int>(type: "int", nullable: true)
             },
             constraints: table =>
             {

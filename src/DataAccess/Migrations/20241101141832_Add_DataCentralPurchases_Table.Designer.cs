@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Marketplace.SaaS.Accelerator.DataAccess.Migrations
 {
     [DbContext(typeof(SaasKitContext))]
-    [Migration("20241101141832_Add_DataCentral_Tenant_Table")]
-    partial class Add_DataCentral_Tenant_Table
+    [Migration("20241101141832_Add_DataCentralPurchases_Table")]
+    partial class Add_DataCentralPurchases_Table
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

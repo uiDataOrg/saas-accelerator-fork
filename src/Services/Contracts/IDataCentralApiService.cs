@@ -11,4 +11,6 @@ public interface IDataCentralApiService
     Task EnableTenant(Guid subscriptionId);
 
     Task UpdateTenantEditionForPlanChange(Guid subscriptionId, string newPlanName);
+
+    Task TriggerInstanceAutomation(Guid subscriptionId, string customerEmailAddress, string environmentName);
 }

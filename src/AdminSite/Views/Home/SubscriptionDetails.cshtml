@@ -123,21 +123,22 @@
                             @Html.HiddenFor(model => model.Beneficiary.ObjectId)
                         </dd>
 
-                        <dt class="col-sm-3 p-2 p10">
-                            @Html.DisplayName("DataCentral Tenant Name")
-                        </dt>
+                        @if (Model.IsSubscriptionForTenant)
+                        {
+                            <dt class="col-sm-3 p-2 p10">
+                                @Html.DisplayName("DataCentral Tenant Name")
+                            </dt>
+                        }
+                        {
+                            <dt class="col-sm-3 p-2 p10">
+                                @Html.DisplayName("DataCentral Enterprise Environment Name")
+                            </dt>
+                        }
                         <dd class="col-sm-9 p-2 p10">
-                            @Html.DisplayFor(model => model.DataCentralTenantName)
-                            @Html.HiddenFor(model => model.DataCentralTenantName)
+                            @Html.DisplayFor(model => model.DataCentralPurchaseEnvironmentName)
+                            @Html.HiddenFor(model => model.DataCentralPurchaseEnvironmentName)
                         </dd>
-                        <dt class="col-sm-3 p-2 p10">
-                            @Html.DisplayName("DataCentral Tenant Id")
-                        </dt>
-                        <dd class="col-sm-9 p-2 p10">
-                            @Html.DisplayFor(model => model.DataCentralTenantId)
-                            @Html.HiddenFor(model => model.DataCentralTenantId)
-                        </dd>
-
+                        
                     </dl>
                 </div>
                 <div style="text-align: right !important;">

@@ -212,11 +212,21 @@
 
                         @if (Model.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingFulfillmentStart && Model.PlanId != "freemium")
                         {
-                            <dt class="col-sm-3 p-2 p10">
-                                @Html.DisplayName("Name for DataCentral tenant")
-                            </dt>
+                            @if (Model.IsSubscriptionForTenant)
+                            {
+                                <dt class="col-sm-3 p-2 p10">
+                                    @Html.DisplayName("Name for DataCentral tenant")
+                                </dt>
+                            }
+                            else
+                            {
+                                <dt class="col-sm-3 p-2 p10">
+                                    @Html.DisplayName("Name for DataCentral instance")
+                                </dt>
+                            }
+
                             <dd class="col-sm-9 p-2 p10" style="position: relative;">
-                                @Html.TextBoxFor(model => model.DataCentralTenantName, new { style = "width:400px; height: 34px;", id = "tenantNameInput", onkeyup = "checkTenantAvailability()" })
+                                @Html.TextBoxFor(model => model.DataCentralPurchaseEnvironmentName, new { style = "width:400px; height: 34px;", id = "tenantNameInput", onkeyup = "checkSubdomainAvailability()" })
 
                                 <!-- Icons for availability status -->
                                 <i id="availabilityCheck" class="fa fa-check" style="color: green; display: none; font-size: 24px;"></i>
@@ -231,23 +241,34 @@
 
                             <!-- URL Container that should appear only if the tenant name is available -->
                             <div id="urlContainer" style="display: none; padding: 0;">
-                                <dt class="col-sm-3 p-2 p10">
-                                    Final tenant URL for your subscription
-                                </dt>
+                                @if (Model.IsSubscriptionForTenant)
+                                {
+                                    <dt class="col-sm-3 p-2 p10">
+                                        Final URL for your tenant subscription
+                                    </dt>
+                                }
+                                else
+                                {
+                                    <dt class="col-sm-3 p-2 p10">
+                                        Final URL for your subscription
+                                    </dt>
+                                }
+                                
+                                
                                 <dd class="col-sm-9 p-2 p10">
                                     <span id="tenantUrl" style="font-weight: bold; color: #007BFF;"></span>
                                 </dd>
                             </div>
                         }
 
-                        @if (Model.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && !string.IsNullOrEmpty(Model.DataCentralTenantName))
+                        @if (Model.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && !string.IsNullOrEmpty(Model.DataCentralPurchaseEnvironmentName))
                         {
                             <dt class="col-sm-3 p-2 p10">
                                 @Html.DisplayName("DataCentral Tenant Name")
                             </dt>
                             <dd class="col-sm-9 p-2 p10">
-                                @Html.DisplayFor(model => model.DataCentralTenantName)
-                                @Html.HiddenFor(model => model.DataCentralTenantName)
+                                @Html.DisplayFor(model => model.DataCentralPurchaseEnvironmentName)
+                                @Html.HiddenFor(model => model.DataCentralPurchaseEnvironmentName)
                             </dd>
                         }
                     </dl>
@@ -264,7 +285,7 @@
                     }
                     @if (Model.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingFulfillmentStart && Model.IsAutomaticProvisioningSupported == false)
                     {
-                        <a onclick="SubscriptionOperation('@Model.Id','@Model.PlanId','Activate')" id="btnActive" class="cm-button-default text-end" style="text-decoration:none;">Subscribeeee</a>
+                        <a onclick="SubscriptionOperation('@Model.Id','@Model.PlanId','Activate')" id="btnActive" class="cm-button-default text-end" style="text-decoration:none;">Subscribe</a>
                     }
                 </div>
 
@@ -307,7 +328,6 @@ else
 
     async function SubscriptionOperation(subscriptionId, planId, operation) {
         let tenantName = '';
-        console.log(subscriptionId);
 
         // If planId is not "freemium", handle tenantName input
         if (planId !== "freemium") {
@@ -348,7 +368,7 @@ else
                 "&planId=" + planId +
                 "&operation=" + operation;
             if (planId !== "freemium") {
-                requestData += "&tenantName=" + tenantName;
+                requestData += "&environmentName=" + tenantName;
             }
 
             $.ajax({
@@ -394,7 +414,7 @@ else
     let typingTimer;
     const typingDelay = 200; // 1 second
 
-    async function checkTenantAvailability() {
+    async function checkSubdomainAvailability() {
         clearTimeout(typingTimer);
         const tenantName = document.getElementById("tenantNameInput").value;
 
@@ -429,9 +449,11 @@ else
                     urlContainer.style.display = "flex";
 
                     const baseUrlTemplate = '@Model.DataCentralSubdomainUrlTemplate';
+                    console.log(baseUrlTemplate)
                     const tenantUrlString = baseUrlTemplate.replace("{{subdomainName}}", tenantName);
 
                     // Show the URL container and update the URL dynamically
+                    console.log(tenantUrlString)
                     tenantUrl.textContent = tenantUrlString;
                 } else {
                     // Show x-mark icon, hide check icon

@@ -14,7 +14,7 @@ public partial class SaasKitContext : DbContext
     {
     }
 
-    public virtual DbSet<DataCentralTenant> DataCentralTenants { get; set; }
+    public virtual DbSet<DataCentralPurchase> DataCentralPurchases { get; set; }
     public virtual DbSet<ApplicationConfiguration> ApplicationConfiguration { get; set; }
     public virtual DbSet<ApplicationLog> ApplicationLog { get; set; }
     public virtual DbSet<DatabaseVersionHistory> DatabaseVersionHistory { get; set; }

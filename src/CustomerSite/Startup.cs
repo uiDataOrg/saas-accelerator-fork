@@ -189,7 +189,7 @@ public class Startup
         services.AddScoped<IEmailService, SMTPEmailService>();
         services.AddScoped<SaaSClientLogger<HomeController>>();
         services.AddScoped<IWebNotificationService, WebNotificationService>();
-        services.AddScoped<IDataCentralTenantsRepository, DataCentralTenantsRepository>();
+        services.AddScoped<IDataCentralPurchasesRepository, DataCentralPurchasesRepository>();
         services.AddScoped<IDataCentralApiService, DataCentralApiService>();
         services.AddScoped<SaaSClientLogger<WebNotificationController>>();
     }
