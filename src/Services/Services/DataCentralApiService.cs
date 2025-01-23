@@ -81,7 +81,7 @@ public class DataCentralApiService : IDataCentralApiService
             MarketplaceSubscriptionDate = DateTime.UtcNow,
             MarketplaceSubscriptionId = subscriptionId,
             TriggerGithubWorkflows = false,
-            InsertIntoDb = false,
+            InsertIntoDb = true,
             UpdateSettings = false,
             UpdateHostAdmin = false
         };
