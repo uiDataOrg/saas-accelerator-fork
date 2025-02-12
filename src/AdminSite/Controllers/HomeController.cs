@@ -393,9 +393,15 @@ public class HomeController : BaseController
             
             subscriptionDetail.IsSubscriptionForTenant = dataCentralPurchase.TypeOfPurchase == "tenant";
             subscriptionDetail.DataCentralPurchaseEnvironmentName = dataCentralPurchase.EnvironmentName;
+            subscriptionDetail.DataCentralUrl = CreateDataCentralUrl(dataCentralPurchase.EnvironmentName);
         }
 
         return this.View(subscriptionDetail);
+    }
+
+    private string CreateDataCentralUrl(string envName)
+    {
+        return string.Format("https://{0}.datacentral.ai");
     }
 
     /// <summary>

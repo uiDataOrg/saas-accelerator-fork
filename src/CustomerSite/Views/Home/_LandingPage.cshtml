@@ -47,62 +47,62 @@
             }
             else
             {
-                <div class="cm-panel-default mt20">
+                <div class="mt20">
                     <dl class="row text-left">
-                        <dt class="col-sm-3 p-2 p10">
+                        <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayName("Customer Email")
                         </dt>
-                        <dd class="col-sm-9 p-2 p10">
+                        <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayFor(model => model.CustomerEmailAddress)
                         </dd>
-                        <dt class="col-sm-3 p-2 p10">
+                        <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayName("Customer Name ")
                         </dt>
-                        <dd class="col-sm-9 p-2 p10">
+                        <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayFor(model => model.CustomerName)
                         </dd>
-                        <dt class="col-sm-3 p-2 p10">
+                        <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayName("ID ")
                         </dt>
-                        <dd class="col-sm-9 p-2 p10">
+                        <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayFor(model => model.Id)
                         </dd>
-                        <dt class="col-sm-3 p-2 p10">
+                        <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayName("Name ")
                         </dt>
-                        <dd class="col-sm-9 p-2">
+                        <dd class="col-sm-9 p-2 margin-bottom-4 az-border-bottom">
                             @Html.DisplayFor(model => model.Name)
                         </dd>
-                        <dt class="col-sm-3 p-2 p10">
+                        <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayName("Status ")
                         </dt>
-                        <dd class="col-sm-9 p-2 p10">
+                        <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayFor(model => model.SubscriptionStatus)
                         </dd>
-                        <dt class="col-sm-3 p-2 p10">
+                        <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayName("Offer Name ")
                         </dt>
-                        <dd class="col-sm-9 p-2 p10">
+                        <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayFor(model => model.OfferId)
                         </dd>
-                        <dt class="col-sm-3 p-2 p10">
+                        <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayName("Plan ")
                         </dt>
-                        <dd class="col-sm-9 p-2 p10">
+                        <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayFor(model => model.PlanId)
                         </dd>
-                        <dt class="col-sm-3 p-2 p10">
+                        <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayName("Purchaser Email ")
                         </dt>
-                        <dd class="col-sm-9 p-2 p10">
+                        <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayFor(model => model.Purchaser.EmailId)
                             @Html.HiddenFor(model => model.Purchaser.EmailId)
                         </dd>
 
-                        <dt class="col-sm-3 p-2 p10">
+                        <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayName("Azure Tenant ID ")
                         </dt>
-                        <dd class="col-sm-9 p-2 p10">
+                        <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
                             @Html.DisplayFor(model => model.Purchaser.TenantId)
                             @Html.HiddenFor(model => model.Purchaser.TenantId)
                         </dd>
@@ -229,14 +229,15 @@
                                 @Html.TextBoxFor(model => model.DataCentralPurchaseEnvironmentName, new { style = "width:400px; height: 34px;", id = "tenantNameInput", onkeyup = "checkSubdomainAvailability()" })
 
                                 <!-- Icons for availability status -->
-                                <i id="availabilityCheck" class="fa fa-check" style="color: green; display: none; font-size: 24px;"></i>
-                                <i id="availabilityXmark" class="fa fa-times" style="color: red; display: none; font-size: 24px;"></i>
+                                <svg id="availabilityCheck" style="height: 14px; display: none;" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="azc-fabric-check-svg" viewBox="0 0 12.7 9.1"><path d="M12.7.7,4.4,9.1,0,4.7.7,4,4.4,7.6,12,0Z" fill="#57a300"></path></svg>
+                                <svg id="availabilityXmark" style="height: 18px; display: none;" viewBox="0 0 9 9" role="presentation" focusable="false" xmlns:svg="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"><g><circle fill="#a4262c" cx="4.5" cy="4.5" r="4.5" class="msportalfx-svg-c22"></circle><path d="M7 2.8 6.2 2 4.5 3.7 2.8 2l-.8.8 1.7 1.7L2 6.2l.8.8 1.7-1.7L6.2 7l.8-.8-1.7-1.7z" class="msportalfx-svg-c01" fill="#fff"></path></g></svg>
+
 
                                 <!-- Spinner icon for loading state -->
                                 <i id="availabilitySpinner" class="fa fa-spinner fa-spin" style="color: gray; display: none; font-size: 24px;"></i>
 
                                 <!-- Availability message below input -->
-                                <div id="availabilityMessage" style="color: red; font-size: 0.9em; display: none; margin-top: 5px;"></div>
+                                <div id="availabilityMessage" style="color: #a4262c; font-size: 0.9em; display: none; margin-top: 5px;"></div>
                             </dd>
 
                             <!-- URL Container that should appear only if the tenant name is available -->
@@ -256,21 +257,33 @@
                                 
                                 
                                 <dd class="col-sm-9 p-2 p10">
-                                    <span id="tenantUrl" style="font-weight: bold; color: #007BFF;"></span>
+                                    <span id="tenantUrl" style="font-weight: bold; color: #007BFF;">fdsafdsfdsafdsa</span>
+                                    <a id="copyButton" onclick="copyTenantUrl()" id="btnActive" class="cm-button-default text-end" style="margin: 0 0 0 10px; padding: 4px 8px;">📋 Copy</a>
                                 </dd>
                             </div>
                         }
 
                         @if (Model.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && !string.IsNullOrEmpty(Model.DataCentralPurchaseEnvironmentName))
                         {
-                            <dt class="col-sm-3 p-2 p10">
+                            <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
                                 @Html.DisplayName("DataCentral Tenant Name")
                             </dt>
-                            <dd class="col-sm-9 p-2 p10">
+                            <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
                                 @Html.DisplayFor(model => model.DataCentralPurchaseEnvironmentName)
                                 @Html.HiddenFor(model => model.DataCentralPurchaseEnvironmentName)
                             </dd>
+
+                            <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
+                                @Html.DisplayName("URL")
+                            </dt>
+                            <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
+                                @Html.DisplayFor(model => model.DataCentralUrl)
+                                @Html.HiddenFor(model => model.DataCentralUrl)
+                                <a id="copyButton" onclick="copyTenantUrl2()" id="btnActive" class="cm-button-default text-end" style="margin: 0 0 0 10px; padding: 4px 8px;">📋 Copy</a>
+                            </dd>
+                            
                         }
+
                     </dl>
                 </div>
                 <div class="text-end">
@@ -325,6 +338,45 @@ else
     </div>
 }
 <script type="text/javascript">
+    function copyTenantUrl2(){
+        copyToClipboard('@Model.DataCentralUrl');
+    }
+
+
+    function copyTenantUrl() {
+        const tenantUrlElement = document.getElementById('tenantUrl');
+        const tenantUrl = tenantUrlElement.innerText || tenantUrlElement.textContent;
+
+        if (!tenantUrl) {
+            swal({
+                icon: 'warning',
+                title: 'Oops...',
+                text: 'No URL to copy!',
+            });
+            return;
+        }
+
+        copyToClipboard(tenantUrl);
+    }
+
+    function copyToClipboard(tenantUrl) {
+        navigator.clipboard.writeText(tenantUrl).then(() => {
+            swal({
+                icon: 'success',
+                title: 'Copied!',
+                text: 'The URL has been copied to your clipboard.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }).catch(err => {
+            swal({
+                icon: 'error',
+                title: 'Failed!',
+                text: 'Could not copy the URL. Please try again.',
+            });
+            console.error("Failed to copy: ", err);
+        });
+    }
 
     async function SubscriptionOperation(subscriptionId, planId, operation) {
         let tenantName = '';
@@ -332,11 +384,10 @@ else
         // If planId is not "freemium", handle tenantName input
         if (planId !== "freemium") {
             tenantName = document.getElementById("tenantNameInput").value;
-            console.log(tenantName);
 
             if (!validateTenantName(tenantName)) {
                 swal({
-                    title: "Required",
+                    title: "Input is empty",
                     text: "Please fill out tenant name input",
                     icon: "warning"
                 });
@@ -346,7 +397,7 @@ else
             const isAvailable = await isTenantAvailable(tenantName);
             if (!isAvailable) {
                 swal({
-                    title: "Required",
+                    title: "Not available",
                     text: "Tenant name is taken, please select another one",
                     icon: "warning"
                 });
@@ -449,18 +500,16 @@ else
                     urlContainer.style.display = "flex";
 
                     const baseUrlTemplate = '@Model.DataCentralSubdomainUrlTemplate';
-                    console.log(baseUrlTemplate)
                     const tenantUrlString = baseUrlTemplate.replace("{{subdomainName}}", tenantName);
 
                     // Show the URL container and update the URL dynamically
-                    console.log(tenantUrlString)
                     tenantUrl.textContent = tenantUrlString;
                 } else {
                     // Show x-mark icon, hide check icon
                     availabilityCheck.style.display = "none";
                     availabilityXmark.style.display = "inline";
                     availabilityMessage.style.display = "block";
-                    availabilityMessage.textContent = "Tenant name is taken, please choose another one.";
+                    availabilityMessage.textContent = "Name is taken, please choose another one.";
 
                     // Hide the URL container if name is not available
                     urlContainer.style.display = "none";

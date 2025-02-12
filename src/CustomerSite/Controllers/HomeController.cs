@@ -727,8 +727,7 @@ public class HomeController : BaseController
                             this.subscriptionLogRepository.Save(auditLog);
                         }
 
-                        //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
-                        if (true)
+                        if (isCreatingTenant)
                         {
                             //Tenants
                             //Delete tenant here
@@ -809,13 +808,12 @@ public class HomeController : BaseController
                                     break;
                                 }
                             }
-
+                            var isCreatingTenant = subscriptionDetail.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
                             if (changePlanOperationStatus == OperationStatusEnum.Succeeded)
                             {
                                 this.logger.Info(HttpUtility.HtmlEncode($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan : {subscriptionDetail.PlanId} UserId: ***** OperationId: {jsonResult.OperationId}."));
 
-                                //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
-                                if (true)
+                                if (isCreatingTenant)
                                 {
                                     await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
                                 }
@@ -975,8 +973,8 @@ public class HomeController : BaseController
                 var dataCentralPurchase = this.dataCentralPurchasesRepository.Get(subscriptionDetail.Id);
                 if (subscriptionDetail.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && dataCentralPurchase != null)
                 {
-                    
                     subscriptionDetail.DataCentralPurchaseEnvironmentName = dataCentralPurchase.EnvironmentName;
+                    subscriptionDetail.DataCentralUrl = CreateDataCentralUrl(subscriptionDetail.DataCentralPurchaseEnvironmentName);
                 }
                 subscriptionDetail.IsSubscriptionForTenant = subscriptionDetail.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
                 subscriptionDetail.DataCentralSubdomainUrlTemplate = ClientConfiguration.DataCentralSubdomainUrlTemplate;
@@ -991,12 +989,17 @@ public class HomeController : BaseController
         }
     }
 
+    private string CreateDataCentralUrl(string envName)
+    {
+        return string.Format("https://{0}.datacentral.ai", envName);
+    }
+
     [HttpPost]
     [IgnoreAntiforgeryToken]
     public IActionResult InstanceAutomationWebhook([FromBody] InstanceAutomationWebhookDto dto)
     {
         // Retrieve the salt
-        var salt = Environment.GetEnvironmentVariable("WebhookSalt") ?? "defaultSaltValue";
+        var salt = Environment.GetEnvironmentVariable("DataCentralConfig:WebhookSalt") ?? "defaultSaltValue";
 
         // Recreate the NotSoSecureKey using the provided subscriptionId and salt
         var expectedKey = GenerateNotSoSecureKey(dto.SubscriptionId.ToString(), salt);

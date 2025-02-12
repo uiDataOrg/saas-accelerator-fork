@@ -5,6 +5,7 @@ using System;
 using System.Threading.Tasks;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
 using Marketplace.SaaS.Accelerator.DataAccess.Entities;
+using Marketplace.SaaS.Accelerator.Services.Configurations;
 using Marketplace.SaaS.Accelerator.Services.Contracts;
 using Marketplace.SaaS.Accelerator.Services.Exceptions;
 using Marketplace.SaaS.Accelerator.Services.Models;
@@ -95,6 +96,8 @@ public class WebHookHandler : IWebhookHandler
 
     private readonly IDataCentralApiService dataCentralApiService;
 
+    protected SaaSApiClientConfiguration ClientConfiguration { get; set; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="WebHookHandler" /> class.
     /// </summary>
@@ -126,7 +129,8 @@ public class WebHookHandler : IWebhookHandler
                           IApplicationConfigRepository applicationConfigRepository, 
                           IEmailTemplateRepository emailTemplateRepository, 
                           IPlanEventsMappingRepository planEventsMappingRepository,
-                          IDataCentralApiService dataCentralApiService)
+                          IDataCentralApiService dataCentralApiService,
+                          SaaSApiClientConfiguration clientConfiguration)
     {
         this.applicationLogRepository = applicationLogRepository;
         this.subscriptionsRepository = subscriptionsRepository;
@@ -159,6 +163,7 @@ public class WebHookHandler : IWebhookHandler
             this.loggerFactory.CreateLogger<NotificationStatusHandler>());
 
         this.dataCentralApiService = dataCentralApiService;
+        this.ClientConfiguration = clientConfiguration;
     }
 
     /// <summary>
@@ -283,8 +288,8 @@ public class WebHookHandler : IWebhookHandler
 
         this.subscriptionsLogRepository.Save(auditLog);
 
-        //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
-        if (true)
+        var isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+        if (isCreatingTenant)
         {
             await dataCentralApiService.EnableTenant(payload.SubscriptionId);
         }
@@ -334,8 +339,8 @@ public class WebHookHandler : IWebhookHandler
             this.subscriptionsLogRepository.Save(auditLog);
         }
 
-        //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
-        if (true)
+        var isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+        if (isCreatingTenant)
         {
             await dataCentralApiService.DisableTenant(payload.SubscriptionId);
         }
@@ -373,8 +378,8 @@ public class WebHookHandler : IWebhookHandler
             this.subscriptionsLogRepository.Save(auditLog);
         }
 
-        //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
-        if (true)
+        var isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+        if (isCreatingTenant)
         {
             await dataCentralApiService.DisableTenant(payload.SubscriptionId);
         }

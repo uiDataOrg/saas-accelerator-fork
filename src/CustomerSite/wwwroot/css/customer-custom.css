@@ -6,13 +6,27 @@
     margin: 0;
 }
 
+dt {
+    font-weight: 600 !important;
+}
+
+.margin-bottom-4 {
+    margin-bottom: .4rem;
+}
+
+.az-border-bottom {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-color: #d6d6d6;
+}
+
 .cm-content {
     min-height: 100%;
     margin-bottom: 20px;
 }
 
 .cm-top-nav-bar {
-    background-color: #004578 !important;
+    background-color: #0078d4 !important;
     margin-bottom: 0px;
     border: 0px;
     height:48px;
@@ -126,8 +140,8 @@
 
 .cm-button-default {
     color: #fff !important;
-    background-color: #004578;
-    border-color: #2e6da4;
+    background-color: rgb(0, 120, 212);
+    /*border-color: #2e6da4;*/
     display: inline-block;
     font-weight: 400;
     text-align: center;
@@ -137,27 +151,31 @@
     touch-action: manipulation;
     cursor: pointer;
     background-image: none;
-    border: 1px solid transparent;
-    padding: 12px 20px;
+    /*border: 1px solid transparent;*/
+    border: 1px solid rgb(0, 120, 212);
+    padding: 8px 16px;
     font-size: 16px;
     font-weight: bold;
     line-height: 1.42857143;
-    border-radius: 4px;
+    border-radius: 2px;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
     margin-top: 25px;
     margin-bottom: 20px;
+    text-decoration: none;
 }
 
     .cm-button-default:hover {
-        background-color: #2180a6;
-        border-radius: 5px;
+        /*background-color: #2180a6;*/
+        background-color: rgb(16, 110, 190);
+        border: 1px solid rgb(16, 110, 190);
+        /* border-radius: 5px;
         padding: 12px 20px;
         font-size: 18px;
         font-weight: bold;
-        color: #004578;
+        color: #004578;*/
     }
 
 .cm-button-error {
@@ -234,8 +252,8 @@
 
 .cm-button-danger {
     color: #fff;
-    background-color: #EA2333;
-    border-color: #2e6da4;
+    background-color: rgb(195, 39, 39);
+    /*border-color: #2e6da4;*/
     display: inline-block;
     font-weight: 400;
     text-align: center;
@@ -245,27 +263,31 @@
     touch-action: manipulation;
     cursor: pointer;
     background-image: none;
-    border: 1px solid transparent;
-    padding: 12px 20px;
+    /*border: 1px solid transparent;*/
+    border: 1px solid rgb(195, 39, 39);
+    padding: 8px 16px;
     font-size: 16px;
     font-weight: bold;
     line-height: 1.42857143;
-    border-radius: 4px;
+    border-radius: 2px;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
     margin-top: 25px;
     margin-bottom: 20px;
+    text-decoration: none;
 }
 
     .cm-button-danger:hover {
-        background-color: #EAE7E7;
-        border-radius: 5px;
+        /*background-color: #EAE7E7;*/
+        background-color: rgb(165, 33, 33);
+        border: 1px solid rgb(165, 33, 33);
+        /*border-radius: 5px;
         padding: 12px 20px;
         font-size: 18px;
         font-weight: bold;
-        color: #004578;
+        color: #004578;*/
     }
 
 .cm-table {

@@ -85,5 +85,7 @@ public class SubscriptionResultExtension : SubscriptionResult
 
     //public int DataCentralTenantId { get; set; }
 
+    public string DataCentralUrl { get; set; }
+
     public string DataCentralSubdomainUrlTemplate { get; set; }
 }
