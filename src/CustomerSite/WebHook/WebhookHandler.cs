@@ -199,7 +199,11 @@ public class WebHookHandler : IWebhookHandler
         auditLog.NewValue = payload.PlanId;
         this.subscriptionsLogRepository.Save(auditLog);
 
-        await this.dataCentralApiService.UpdateTenantEditionForPlanChange(payload.SubscriptionId, payload.PlanId);
+        var isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+        if (isCreatingTenant)
+        {
+            await this.dataCentralApiService.UpdateTenantEditionForPlanChange(payload.SubscriptionId, payload.PlanId);
+        }
 
         await Task.CompletedTask;
     }

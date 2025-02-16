@@ -808,7 +808,11 @@ public class HomeController : BaseController
                                     break;
                                 }
                             }
-                            var isCreatingTenant = subscriptionDetail.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+
+                            var plan = planRepository.GetById(subscriptionDetail.PlanId);
+                            var offer = offersRepository.GetOfferById(plan.OfferId);
+
+                            var isCreatingTenant = offer.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
                             if (changePlanOperationStatus == OperationStatusEnum.Succeeded)
                             {
                                 this.logger.Info(HttpUtility.HtmlEncode($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan : {subscriptionDetail.PlanId} UserId: ***** OperationId: {jsonResult.OperationId}."));
