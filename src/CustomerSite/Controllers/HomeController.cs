@@ -297,6 +297,7 @@ public class HomeController : BaseController
                         {
                             
                             subscriptionExtension.DataCentralPurchaseEnvironmentName = dataCentralPurchase.EnvironmentName;
+                            subscriptionExtension.DataCentralUrl = CreateDataCentralUrl(dataCentralPurchase.EnvironmentName);
                         }
                         subscriptionExtension.IsSubscriptionForTenant = subscriptionExtension.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
                         subscriptionExtension.DataCentralSubdomainUrlTemplate = ClientConfiguration.DataCentralSubdomainUrlTemplate;
