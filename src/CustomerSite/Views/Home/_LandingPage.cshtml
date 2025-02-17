@@ -210,7 +210,7 @@
 
                         }
 
-                        @if (Model.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingFulfillmentStart && Model.PlanId != "freemium")
+                        @if (Model.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingFulfillmentStart && !Model.PlanId.Contains("freemium"))
                         {
                             @if (Model.IsSubscriptionForTenant)
                             {
@@ -382,7 +382,7 @@ else
         let tenantName = '';
 
         // If planId is not "freemium", handle tenantName input
-        if (planId !== "freemium") {
+        if (!planId.includes("freemium")) {
             tenantName = document.getElementById("tenantNameInput").value;
 
             if (!validateTenantName(tenantName)) {
@@ -418,7 +418,7 @@ else
                 "&subscriptionId=" + subscriptionId +
                 "&planId=" + planId +
                 "&operation=" + operation;
-            if (planId !== "freemium") {
+            if (!planId.includes("freemium")) {
                 requestData += "&environmentName=" + tenantName;
             }
 

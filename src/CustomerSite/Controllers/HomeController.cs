@@ -625,7 +625,7 @@ public class HomeController : BaseController
 
                     isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
 
-                    if (planId == "freemium" && isCreatingTenant)
+                    if (planId.Contains("freemium") && isCreatingTenant)
                     {
                         environmentName = CreateRandomTenantName();
                     }
