@@ -81,10 +81,12 @@ public class Startup
             DataCentralApiBaseUrl = this.Configuration["DataCentralConfig:ApiBaseUrl"],
             DataCentralApiKey = this.Configuration["DataCentralConfig:ApiKey"],
             CheckSubdomainAvailabilityApiRoute = this.Configuration["DataCentralConfig:CheckSubdomainAvailabilityApiRoute"],
-            DataCentralTenantOfferId = this.Configuration["DataCentralConfig:TenantOfferId"],
-            DateCentralInstanceOfferId = this.Configuration["DataCentralConfig:EnterpriseOfferId"],
             DataCentralSubdomainUrlTemplate = this.Configuration["DataCentralConfig:SubdomainUrlTemplate"],
-            DataCentralWebhookSalt = this.Configuration["DataCentralConfig:WebhookSalt"]
+            DataCentralWebhookSalt = this.Configuration["DataCentralConfig:WebhookSalt"],
+            DataCentralTenantOfferId = this.Configuration["DataCentralConfig:TenantOfferId"],
+            DataCentralDevTenantOfferId = this.Configuration["DataCentralConfig:DevTenantOfferId"],
+            DateCentralInstanceOfferId = this.Configuration["DataCentralConfig:InstanceOfferId"],
+            DateCentralDevInstanceOfferId = this.Configuration["DataCentralConfig:DevInstanceOfferId"],
         };
         var creds = new ClientSecretCredential(config.TenantId.ToString(), config.ClientId.ToString(), config.ClientSecret);
 

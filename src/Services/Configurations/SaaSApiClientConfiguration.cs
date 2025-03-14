@@ -122,9 +122,13 @@ public class SaaSApiClientConfiguration
 
     public string CheckSubdomainAvailabilityApiRoute { get; set; }
 
+    public string DataCentralDevTenantOfferId { get; set; }
+
     public string DataCentralTenantOfferId { get; set; }
 
     public string DateCentralInstanceOfferId { get; set; }
+
+    public string DateCentralDevInstanceOfferId { get; set; }
 
     public string DataCentralSubdomainUrlTemplate { get; set; }
 

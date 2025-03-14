@@ -27,11 +27,11 @@ public class DataCentralPurchaseHelperService : IDataCentralPurchaseHelperServic
 
             var plan = planRepository.GetById(planId);
             var offer = offerRepository.GetOfferById(plan.OfferId);
-            return offer.OfferId == ClientConfiguration.DataCentralTenantOfferId;
+            return offer.OfferId == ClientConfiguration.DataCentralTenantOfferId || offer.OfferId == ClientConfiguration.DataCentralDevTenantOfferId;
         }
         else
         {
-            return offerId == ClientConfiguration.DataCentralTenantOfferId;
+            return offerId == ClientConfiguration.DataCentralTenantOfferId || offerId == ClientConfiguration.DataCentralDevTenantOfferId;
         }
     }
 }
