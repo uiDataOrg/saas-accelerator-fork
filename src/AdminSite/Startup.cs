@@ -83,10 +83,7 @@ public class Startup
             TenantId = this.Configuration["SaaSApiConfiguration:TenantId"] ?? Guid.Empty.ToString(),
             IsAdminPortalMultiTenant = this.Configuration["SaaSApiConfiguration:IsAdminPortalMultiTenant"],
             DataCentralApiBaseUrl = this.Configuration["DataCentralConfig:ApiBaseUrl"],
-            DataCentralApiKey = this.Configuration["DataCentralConfig:ApiKey"],
-            //CheckSubdomainAvailabilityApiRoute = this.Configuration["DataCentralConfig:CheckSubdomainAvailabilityApiRoute"],
-            //DataCentralTenantOfferId = this.Configuration["DataCentralConfig:TenantOfferId"],
-            //DataCentralEnterpriseOfferId = this.Configuration["DataCentralConfig:EnterpriseOfferId"]
+            DataCentralApiKey = this.Configuration["DataCentralConfig:ApiKey"]
         };
         var knownUsers = new KnownUsersModel()
         {
@@ -145,7 +142,8 @@ public class Startup
             .AddSingleton<IMeteredBillingApiService>(new MeteredBillingApiService(new MarketplaceMeteringClient(creds), config, new SaaSClientLogger<MeteredBillingApiService>()))
             .AddSingleton<SaaSApiClientConfiguration>(config)
             .AddSingleton<KnownUsersModel>(knownUsers)
-            .AddScoped<IDataCentralApiService, DataCentralApiService>();
+            .AddScoped<IDataCentralApiService, DataCentralApiService>()
+            .AddScoped<IDataCentralPurchaseHelperService, IDataCentralPurchaseHelperService>();
 
         // Add the assembly version
         services.AddSingleton<IAppVersionService>(new AppVersionService(Assembly.GetExecutingAssembly()?.GetName()?.Version));

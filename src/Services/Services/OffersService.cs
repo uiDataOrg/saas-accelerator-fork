@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml.Linq;
-using Marketplace.SaaS.Accelerator.DataAccess.Context;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
-using Marketplace.SaaS.Accelerator.DataAccess.Services;
 using Marketplace.SaaS.Accelerator.Services.Models;
 
 namespace Marketplace.SaaS.Accelerator.Services.Services;

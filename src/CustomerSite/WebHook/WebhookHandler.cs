@@ -98,6 +98,8 @@ public class WebHookHandler : IWebhookHandler
 
     protected SaaSApiClientConfiguration ClientConfiguration { get; set; }
 
+    private readonly IDataCentralPurchaseHelperService dataCentralPurchaseHelperService;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="WebHookHandler" /> class.
     /// </summary>
@@ -130,7 +132,8 @@ public class WebHookHandler : IWebhookHandler
                           IEmailTemplateRepository emailTemplateRepository, 
                           IPlanEventsMappingRepository planEventsMappingRepository,
                           IDataCentralApiService dataCentralApiService,
-                          SaaSApiClientConfiguration clientConfiguration)
+                          SaaSApiClientConfiguration clientConfiguration,
+                          IDataCentralPurchaseHelperService dataCentralPurchaseHelperService)
     {
         this.applicationLogRepository = applicationLogRepository;
         this.subscriptionsRepository = subscriptionsRepository;
@@ -164,6 +167,7 @@ public class WebHookHandler : IWebhookHandler
 
         this.dataCentralApiService = dataCentralApiService;
         this.ClientConfiguration = clientConfiguration;
+        this.dataCentralPurchaseHelperService = dataCentralPurchaseHelperService;
     }
 
     /// <summary>
@@ -199,7 +203,7 @@ public class WebHookHandler : IWebhookHandler
         auditLog.NewValue = payload.PlanId;
         this.subscriptionsLogRepository.Save(auditLog);
 
-        var isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+        var isCreatingTenant = this.dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(oldValue.OfferId, payload.PlanId);
         if (isCreatingTenant)
         {
             await this.dataCentralApiService.UpdateTenantEditionForPlanChange(payload.SubscriptionId, payload.PlanId);
@@ -292,14 +296,14 @@ public class WebHookHandler : IWebhookHandler
 
         this.subscriptionsLogRepository.Save(auditLog);
 
-        var isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+        var isCreatingTenant = this.dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(oldValue.OfferId, payload.PlanId);
         if (isCreatingTenant)
         {
             await dataCentralApiService.EnableTenant(payload.SubscriptionId);
         }
         else
         {
-            //TODO DELETE DISABLE INSTANCE
+            await dataCentralApiService.ReEnableInstance(payload.SubscriptionId);
         }
 
         await Task.CompletedTask;
@@ -343,14 +347,14 @@ public class WebHookHandler : IWebhookHandler
             this.subscriptionsLogRepository.Save(auditLog);
         }
 
-        var isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+        var isCreatingTenant = this.dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(oldValue.OfferId, payload.PlanId);
         if (isCreatingTenant)
         {
             await dataCentralApiService.DisableTenant(payload.SubscriptionId);
         }
         else
         {
-            //TODO DELETE DISABLE INSTANCE
+            await dataCentralApiService.DisableInstance(payload.SubscriptionId);
         }
         
 
@@ -382,14 +386,14 @@ public class WebHookHandler : IWebhookHandler
             this.subscriptionsLogRepository.Save(auditLog);
         }
 
-        var isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+        var isCreatingTenant = this.dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(oldValue.OfferId, payload.PlanId);
         if (isCreatingTenant)
         {
             await dataCentralApiService.DisableTenant(payload.SubscriptionId);
         }
         else
         {
-            //TODO DELETE DISABLE INSTANCE
+            await dataCentralApiService.DisableInstance(payload.SubscriptionId);
         }
         
         this.notificationStatusHandlers.Process(payload.SubscriptionId);

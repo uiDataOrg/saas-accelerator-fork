@@ -124,7 +124,9 @@ public class SaaSApiClientConfiguration
 
     public string DataCentralTenantOfferId { get; set; }
 
-    public string DataCentralEnterpriseOfferId { get; set; }
+    public string DateCentralInstanceOfferId { get; set; }
 
     public string DataCentralSubdomainUrlTemplate { get; set; }
+
+    public string DataCentralWebhookSalt { get; set; }
 }

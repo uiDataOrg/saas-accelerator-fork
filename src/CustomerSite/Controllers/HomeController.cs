@@ -106,9 +106,14 @@ public class HomeController : BaseController
     private UserService userService;
 
     private readonly IDataCentralApiService dataCentralApiService;
+
     private readonly IDataCentralPurchasesRepository dataCentralPurchasesRepository;
+
     private readonly EmailHelper emailHelper;
+
     protected SaaSApiClientConfiguration ClientConfiguration { get; set; }
+
+    private readonly IDataCentralPurchaseHelperService dataCentralPurchaseHelperService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HomeController" /> class.
@@ -149,7 +154,8 @@ public class HomeController : BaseController
         IAppVersionService appVersionService,
         IDataCentralApiService dataCentralApiService,
         IDataCentralPurchasesRepository dataCentralPurchasesRepository,
-        SaaSApiClientConfiguration clientConfiguration) : base(appVersionService)
+        SaaSApiClientConfiguration clientConfiguration,
+        IDataCentralPurchaseHelperService dataCentralPurchaseHelperService) : base(appVersionService)
     {
         this.apiService = apiService;
         this.subscriptionRepository = subscriptionRepo;
@@ -175,7 +181,7 @@ public class HomeController : BaseController
         this.dataCentralApiService = dataCentralApiService;
         this.dataCentralPurchasesRepository = dataCentralPurchasesRepository;
         this.ClientConfiguration = clientConfiguration;
-
+        this.dataCentralPurchaseHelperService = dataCentralPurchaseHelperService;
         this.emailHelper = new EmailHelper(applicationConfigRepository, subscriptionRepository, emailTemplateRepository, planEventsMappingRepository, eventsRepository);
 
         this.pendingActivationStatusHandlers = new PendingActivationStatusHandler(
@@ -299,7 +305,8 @@ public class HomeController : BaseController
                             subscriptionExtension.DataCentralPurchaseEnvironmentName = dataCentralPurchase.EnvironmentName;
                             subscriptionExtension.DataCentralUrl = CreateDataCentralUrl(dataCentralPurchase.EnvironmentName);
                         }
-                        subscriptionExtension.IsSubscriptionForTenant = subscriptionExtension.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+
+                        subscriptionExtension.IsSubscriptionForTenant = dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(subscriptionExtension.OfferId, currentPlan.PlanId);
                         subscriptionExtension.DataCentralSubdomainUrlTemplate = ClientConfiguration.DataCentralSubdomainUrlTemplate;
                     }
                 }
@@ -357,6 +364,7 @@ public class HomeController : BaseController
                     subscription.IsAutomaticProvisioningSupported = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("IsAutomaticProvisioningSupported"));
                     subscription.AcceptSubscriptionUpdates = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("AcceptSubscriptionUpdates"));
                     subscription.IsPerUserPlan = planDetail.IsPerUser.HasValue ? planDetail.IsPerUser.Value : false;
+                    subscription.PlanDisplayName = planDetail.DisplayName;
                 }
 
                 subscriptionDetail.SaaSAppUrl = this.apiService.GetSaaSAppURL();
@@ -401,7 +409,22 @@ public class HomeController : BaseController
                     this.logger.LogError($"Cannot find subscription or subscription associated to the current user");
                     return this.RedirectToAction(nameof(this.Index));
                 }
-                subscriptionDetail.PlanList = this.subscriptionService.GetAllSubscriptionPlans();
+                var offer = offersRepository.GetOfferById(subscriptionDetail.OfferId);
+                var plansForOffer = this.planRepository.GetPlansByOfferId(offer.OfferGuid);
+                var mapped = (from p in plansForOffer
+                              select new PlanDetailResult()
+                              {
+                                  Id = p.Id,
+                                  PlanId = p.PlanId,
+                                  DisplayName = p.DisplayName,
+                                  Description = p.Description,
+                              }).ToList();
+
+                //subscriptionDetail.PlanList = this.subscriptionService.GetAllSubscriptionPlans();
+                subscriptionDetail.PlanList = mapped;
+
+                var plan = planRepository.GetById(subscriptionDetail.PlanId);
+                subscriptionDetail.PlanDisplayName = plan.DisplayName;
 
                 return this.PartialView(subscriptionDetail);
             }
@@ -508,12 +531,13 @@ public class HomeController : BaseController
     /// <returns>
     /// Return View.
     /// </returns>
-    public IActionResult ProcessMessage(string action, string status)
+    public IActionResult ProcessMessage(string action, string status, bool isCreatingTenant)
     {
         try
         {
             if (status.Equals("Activate"))
             {
+                ViewBag.IsCreatingTenant = isCreatingTenant; // Pass value to the view
                 return this.PartialView();
             }
             else
@@ -623,7 +647,7 @@ public class HomeController : BaseController
                         return this.RedirectToAction(nameof(this.Index));
                     }
 
-                    isCreatingTenant = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+                    isCreatingTenant = this.dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(oldValue.OfferId, planId);
 
                     if (planId.Contains("freemium") && isCreatingTenant)
                     {
@@ -639,16 +663,26 @@ public class HomeController : BaseController
                         {
                             this.logger.Info(HttpUtility.HtmlEncode($"Save Subscription Parameters:  {JsonSerializer.Serialize(subscriptionResultExtension.SubscriptionParameters)}" ));
 
-                            //Todo figure out if there is some kind of dbcontext bug here. Concurrent threads ongoing
-
-                            this.dataCentralPurchasesRepository.Add(new DataCentralPurchase()
+                            // Todo figure out if there is some kind of dbcontext bug here. Concurrent threads ongoing
+                            var isPurchase = dataCentralPurchasesRepository.Get(subscriptionId);
+                            //On the off chance that a tenant creation fails and user goes through the account configuration page again,
+                            //we dont want to insert duplicates of same line into DataCentralPurchases table
+                            if (isPurchase == null)
                             {
-                                EnvironmentName = environmentName,
-                                SubscriptionId = oldValue.Id,
-                                TypeOfPurchase = isCreatingTenant ? "tenant" : "instance"
-                            });
+                                this.dataCentralPurchasesRepository.Add(new DataCentralPurchase()
+                                {
+                                    EnvironmentName = environmentName,
+                                    SubscriptionId = oldValue.Id,
+                                    TypeOfPurchase = isCreatingTenant ? "tenant" : "instance"
+                                });
+                            }
+                            else
+                            {
+                                isPurchase.EnvironmentName = environmentName;
+                                this.dataCentralPurchasesRepository.Update(isPurchase);
+                            }
                             
-
+                            
                             if (subscriptionResultExtension.SubscriptionParameters != null && subscriptionResultExtension.SubscriptionParameters.Count() > 0)
                             {
                                 var inputParms = subscriptionResultExtension.SubscriptionParameters.ToList().Where(s => s.Type.ToLower() == "input");
@@ -661,6 +695,17 @@ public class HomeController : BaseController
 
                             if (Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("IsAutomaticProvisioningSupported")))
                             {
+                                if (isCreatingTenant)
+                                {
+                                    // Create tenant directly since automation is enabled
+                                    await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
+                                }
+                                else
+                                {
+                                    // TRIGGER AUTOMATION OF NEW INSTANCE
+                                    await this.dataCentralApiService.TriggerInstanceAutomation(subscriptionId, oldValue.CustomerEmailAddress, environmentName);
+                                }
+
                                 this.logger.Info(HttpUtility.HtmlEncode($"UpdateStateOfSubscription PendingActivation: SubscriptionId: {subscriptionId} "));
                                 if (oldValue.SubscriptionStatus.ToString() != SubscriptionStatusEnumExtension.PendingActivation.ToString())
                                 {
@@ -679,17 +724,7 @@ public class HomeController : BaseController
                                         this.subscriptionLogRepository.Save(auditLog);
                                     }
                                 }
-
-                                if (isCreatingTenant)
-                                {
-                                    // Create tenant directly since automation is enabled
-                                    await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
-                                }
-                                else
-                                {
-                                    //TODO TRIGGER AUTOMATION OF NEW INSTANCE
-                                    await this.dataCentralApiService.TriggerInstanceAutomation(subscriptionId, oldValue.CustomerEmailAddress, environmentName);
-                                }
+                                
                                 //Change from PendingActivation to Subscribed
                                 this.pendingActivationStatusHandlers.Process(subscriptionId);
 
@@ -713,6 +748,17 @@ public class HomeController : BaseController
 
                     if (operation == "Deactivate")
                     {
+                        if (isCreatingTenant)
+                        {
+                            //Tenants
+                            //Delete tenant here
+                            await this.dataCentralApiService.DisableTenant(subscriptionId);
+                        }
+                        else
+                        {
+                            //TODO DELETE/DISABLE INSTANCE HERE
+                        }
+
                         this.subscriptionService.UpdateStateOfSubscription(subscriptionId, SubscriptionStatusEnumExtension.PendingUnsubscribe.ToString(), true);
                         if (oldValue != null)
                         {
@@ -728,17 +774,6 @@ public class HomeController : BaseController
                             this.subscriptionLogRepository.Save(auditLog);
                         }
 
-                        if (isCreatingTenant)
-                        {
-                            //Tenants
-                            //Delete tenant here
-                            await this.dataCentralApiService.DisableTenant(subscriptionId);
-                        }
-                        else
-                        {
-                            //TODO DELETE/DISABLE INSTANCE HERE
-                        }
-
                         this.unsubscribeStatusHandlers.Process(subscriptionId);
                     }
                 }
@@ -749,7 +784,7 @@ public class HomeController : BaseController
                     this.notificationStatusHandlers.Process(subscriptionId);
                 }
 
-                return this.RedirectToAction(nameof(this.ProcessMessage), new { action = operation, status = operation });
+                return this.RedirectToAction(nameof(this.ProcessMessage), new { action = operation, status = operation, isCreatingTenant });
             }
             catch (Exception ex)
             {
@@ -813,7 +848,8 @@ public class HomeController : BaseController
                             var plan = planRepository.GetById(subscriptionDetail.PlanId);
                             var offer = offersRepository.GetOfferById(plan.OfferId);
 
-                            var isCreatingTenant = offer.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+                            var isCreatingTenant = this.dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(subscriptionDetail.OfferId, subscriptionDetail.PlanId);
+
                             if (changePlanOperationStatus == OperationStatusEnum.Succeeded)
                             {
                                 this.logger.Info(HttpUtility.HtmlEncode($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan : {subscriptionDetail.PlanId} UserId: ***** OperationId: {jsonResult.OperationId}."));
@@ -981,7 +1017,7 @@ public class HomeController : BaseController
                     subscriptionDetail.DataCentralPurchaseEnvironmentName = dataCentralPurchase.EnvironmentName;
                     subscriptionDetail.DataCentralUrl = CreateDataCentralUrl(subscriptionDetail.DataCentralPurchaseEnvironmentName);
                 }
-                subscriptionDetail.IsSubscriptionForTenant = subscriptionDetail.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+                subscriptionDetail.IsSubscriptionForTenant = dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(subscriptionDetail.OfferId, planId);
                 subscriptionDetail.DataCentralSubdomainUrlTemplate = ClientConfiguration.DataCentralSubdomainUrlTemplate;
             }
 
@@ -1003,8 +1039,7 @@ public class HomeController : BaseController
     [IgnoreAntiforgeryToken]
     public IActionResult InstanceAutomationWebhook([FromBody] InstanceAutomationWebhookDto dto)
     {
-        // Retrieve the salt
-        var salt = Environment.GetEnvironmentVariable("DataCentralConfig:WebhookSalt") ?? "defaultSaltValue";
+        var salt = ClientConfiguration.DataCentralWebhookSalt;
 
         // Recreate the NotSoSecureKey using the provided subscriptionId and salt
         var expectedKey = GenerateNotSoSecureKey(dto.SubscriptionId.ToString(), salt);

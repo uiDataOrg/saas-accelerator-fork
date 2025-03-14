@@ -28,7 +28,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.Marketplace.SaaS;
 using System;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace Marketplace.SaaS.Accelerator.CustomerSite;
@@ -83,9 +82,9 @@ public class Startup
             DataCentralApiKey = this.Configuration["DataCentralConfig:ApiKey"],
             CheckSubdomainAvailabilityApiRoute = this.Configuration["DataCentralConfig:CheckSubdomainAvailabilityApiRoute"],
             DataCentralTenantOfferId = this.Configuration["DataCentralConfig:TenantOfferId"],
-            DataCentralEnterpriseOfferId = this.Configuration["DataCentralConfig:EnterpriseOfferId"],
-            DataCentralSubdomainUrlTemplate = this.Configuration["DataCentralConfig:SubdomainUrlTemplate"]
-
+            DateCentralInstanceOfferId = this.Configuration["DataCentralConfig:EnterpriseOfferId"],
+            DataCentralSubdomainUrlTemplate = this.Configuration["DataCentralConfig:SubdomainUrlTemplate"],
+            DataCentralWebhookSalt = this.Configuration["DataCentralConfig:WebhookSalt"]
         };
         var creds = new ClientSecretCredential(config.TenantId.ToString(), config.ClientId.ToString(), config.ClientSecret);
 
@@ -192,5 +191,6 @@ public class Startup
         services.AddScoped<IDataCentralPurchasesRepository, DataCentralPurchasesRepository>();
         services.AddScoped<IDataCentralApiService, DataCentralApiService>();
         services.AddScoped<SaaSClientLogger<WebNotificationController>>();
+        services.AddScoped<IDataCentralPurchaseHelperService, DataCentralPurchaseHelperService>();
     }
 }

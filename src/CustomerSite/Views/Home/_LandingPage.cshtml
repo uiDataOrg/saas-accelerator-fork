@@ -265,9 +265,19 @@
 
                         @if (Model.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && !string.IsNullOrEmpty(Model.DataCentralPurchaseEnvironmentName))
                         {
-                            <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
-                                @Html.DisplayName("DataCentral Tenant Name")
-                            </dt>
+                           
+                            @if (Model.IsSubscriptionForTenant)
+                            {
+                                <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
+                                    @Html.DisplayName("DataCentral Tenant Name")
+                                </dt>
+                            }
+                            else 
+                            {
+                                <dt class="col-sm-3 p-2 p10 margin-bottom-4 az-border-bottom">
+                                    @Html.DisplayName("DataCentral Enterprise Environment Name")
+                                </dt>
+                            }
                             <dd class="col-sm-9 p-2 p10 margin-bottom-4 az-border-bottom">
                                 @Html.DisplayFor(model => model.DataCentralPurchaseEnvironmentName)
                                 @Html.HiddenFor(model => model.DataCentralPurchaseEnvironmentName)

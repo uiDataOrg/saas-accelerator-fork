@@ -162,10 +162,12 @@ public class NotificationStatusHandler : AbstractSubscriptionStatusHandler
         if (planEventName == "Activate" && isEmailEnabledForPendingActivation && subscription.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingActivation.ToString())
         {
             triggerEmail = true;
-        }else if (planEventName == "Activate" && isEmailEnabledForSubscriptionActivation && subscription.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingActivation.ToString())
+        }
+        else if (planEventName == "Activate" && isEmailEnabledForSubscriptionActivation && subscription.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingActivation.ToString())
         {
             triggerEmail = true;
-        }else if (planEventName == "Unsubscribe" && isEmailEnabledForUnsubscription)
+        }
+        else if (planEventName == "Unsubscribe" && isEmailEnabledForUnsubscription)
         {
             triggerEmail = true;
         }

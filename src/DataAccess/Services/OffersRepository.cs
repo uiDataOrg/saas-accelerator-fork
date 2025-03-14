@@ -92,6 +92,11 @@ public class OffersRepository : IOffersRepository
         return this.context.Offers.Where(s => s.OfferGuid == offerGuId).FirstOrDefault();
     }
 
+    public Offers GetOfferById(string offerId)
+    {
+        return this.context.Offers.Where(s => s.OfferId == offerId).FirstOrDefault();
+    }
+
     /// <summary>
     /// Gets the offers by user.
     /// </summary>

@@ -83,9 +83,9 @@ public class SubscriptionResultExtension : SubscriptionResult
 
     public string DataCentralPurchaseEnvironmentName { get; set; }
 
-    //public int DataCentralTenantId { get; set; }
-
     public string DataCentralUrl { get; set; }
 
     public string DataCentralSubdomainUrlTemplate { get; set; }
+
+    public string PlanDisplayName { get; set; }
 }

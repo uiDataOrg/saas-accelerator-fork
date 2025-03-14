@@ -113,7 +113,12 @@ public class HomeController : BaseController
     private SaaSApiClientConfiguration saaSApiClientConfiguration;
 
     private readonly IDataCentralApiService dataCentralApiService;
+
     private readonly IDataCentralPurchasesRepository dataCentralPurchasesRepository;
+
+    protected SaaSApiClientConfiguration ClientConfiguration { get; set; }
+
+    private readonly IDataCentralPurchaseHelperService dataCentralPurchaseHelperService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HomeController" /> class.
@@ -163,7 +168,8 @@ public class HomeController : BaseController
         ISAGitReleasesService sAGitReleasesService, 
         SaaSClientLogger<HomeController> logger,
         IDataCentralApiService dataCentralApiService,
-        IDataCentralPurchasesRepository dataCentralPurchasesRepository) : base(applicationConfigRepository, appVersionService)
+        IDataCentralPurchasesRepository dataCentralPurchasesRepository,
+        IDataCentralPurchaseHelperService dataCentralPurchaseHelperService) : base(applicationConfigRepository, appVersionService)
     {
         this.billingApiService = billingApiService;
         this.subscriptionRepo = subscriptionRepo;
@@ -192,6 +198,7 @@ public class HomeController : BaseController
         this.sAGitReleasesService = sAGitReleasesService;
         this.dataCentralApiService = dataCentralApiService;
         this.dataCentralPurchasesRepository = dataCentralPurchasesRepository;
+        this.dataCentralPurchaseHelperService = dataCentralPurchaseHelperService;
 
         this.pendingActivationStatusHandlers = new PendingActivationStatusHandler(
             fulfillApiService,
@@ -461,6 +468,8 @@ public class HomeController : BaseController
             var userDetails = this.userRepository.GetPartnerDetailFromEmail(this.CurrentUserEmailAddress);
             var oldValue = this.subscriptionService.GetSubscriptionsBySubscriptionId(subscriptionId);
             SubscriptionProcessQueueModel queueObject = new SubscriptionProcessQueueModel();
+            var isCreatingTenant = this.dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(oldValue.OfferId, planId);
+            var isCreatingTenant2 = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId); ;
             if (operation == "Activate")
             {
                 //Goes only in here if subscription is going from PendingFulfillmentStart (user has not activated his subscription) to Subscribed
@@ -480,15 +489,15 @@ public class HomeController : BaseController
                     this.subscriptionLogRepository.Save(auditLog);
                 }
 
-                //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
-                if (true) 
+                if (isCreatingTenant)
                 {
                     // Flow is PendingFulfillmentStart (user configures account) to PendingActivation (admin activates subscription) to Subscribed
                     await this.dataCentralApiService.CreateTenantForNewSubscription(subscriptionId, oldValue.CustomerEmailAddress, oldValue.CustomerName, planId);
                 }
                 else
                 {
-                    //trigger new terraform automation
+                    // Trigger new terraform automation
+                    await this.dataCentralApiService.TriggerInstanceAutomation(subscriptionId, oldValue.CustomerEmailAddress, oldValue.DataCentralPurchaseEnvironmentName);
                 }
                 
 
@@ -509,16 +518,16 @@ public class HomeController : BaseController
                 };
                 this.subscriptionLogRepository.Save(auditLog);
 
-
-                //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
-                if (true)
+                if (isCreatingTenant)
                 {
                     //Delete tenant here
                     await this.dataCentralApiService.DisableTenant(subscriptionId);
                 }
                 else
                 {
-                    //Disable delete tenant
+                    //Disable instance
+                    await this.dataCentralApiService.DisableInstance(subscriptionId);
+                    
                 }
 
                 this.unsubscribeStatusHandlers.Process(subscriptionId);
@@ -812,12 +821,15 @@ public class HomeController : BaseController
                             }
                         }
 
+                        var plan = planRepository.GetById(subscriptionDetail.PlanId);
+                        var offer = offersRepository.GetOfferById(plan.OfferId);
+
+                        var isCreatingTenant = this.dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(offer.OfferId, subscriptionDetail.PlanId);
                         if (changePlanOperationStatus == OperationStatusEnum.Succeeded)
                         {
                             this.logger.Info(HttpUtility.HtmlEncode($"Plan Change Success. SubscriptionId: {subscriptionDetail.Id} ToPlan : {subscriptionDetail.PlanId} UserId: ***** OperationId: {jsonResult.OperationId}."));
 
-                            //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
-                            if (true)
+                            if (isCreatingTenant)
                             {
                                 await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
                             }

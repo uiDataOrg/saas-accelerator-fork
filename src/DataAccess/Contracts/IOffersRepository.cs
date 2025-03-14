@@ -30,6 +30,8 @@ public interface IOffersRepository : IDisposable
     /// <returns>The offer for the given identifier.</returns>
     Offers GetOfferById(Guid offerId);
 
+    Offers GetOfferById(string offerId);
+
     /// <summary>
     /// Gets the offers by user.
     /// </summary>

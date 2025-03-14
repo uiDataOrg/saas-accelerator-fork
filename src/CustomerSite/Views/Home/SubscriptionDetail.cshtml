@@ -32,13 +32,20 @@
                             @Html.DisplayName("Current Plan")
                         </dt>
                         <dd class="col-sm-8 pl80">
-                            @Html.DisplayFor(model => model.PlanId)
+                            @($"{Model.PlanDisplayName} ({Model.PlanId})")
                         </dd>
                         <dt class="col-sm-4  pl80">
                             @Html.DisplayName("Change Plan")
                         </dt>
                         <dd class="col-sm-8  pl80">
-                            @Html.DropDownListFor(s => s.PlanId, new SelectList(Model.PlanList, "PlanId", "PlanId", Model.PlanId), new { @class = "form-control w-100" })
+                            @Html.DropDownListFor(s => s.PlanId,
+                                     new SelectList(Model.PlanList.Select(p => new
+                                     {
+                                         PlanId = p.PlanId,
+                                         DisplayText = $"{p.DisplayName} ({p.PlanId})"
+                                     }), "PlanId", "DisplayText", Model.PlanId),
+                                     new { @class = "form-control w-100" })
+
                             @Html.HiddenFor(s => s.Id)
                             @Html.HiddenFor(s => s.PlanId)
                             @Html.HiddenFor(s => s.SubscribeId)

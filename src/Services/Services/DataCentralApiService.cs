@@ -8,13 +8,11 @@ using Marketplace.SaaS.Accelerator.Services.Contracts;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Marketplace.SaaS.Models;
 
 namespace Marketplace.SaaS.Accelerator.Services.Services;
 public class DataCentralApiService : IDataCentralApiService
 {
     protected SaaSApiClientConfiguration ClientConfiguration { get; set; }
-    private readonly IApplicationConfigRepository applicationConfigRepository;
     private readonly ILogger<DataCentralApiService> logger;
     private readonly IDataCentralPurchasesRepository dataCentralPurchaseRepository;
     private readonly IPlansRepository planRepository;
@@ -24,14 +22,12 @@ public class DataCentralApiService : IDataCentralApiService
 
     public DataCentralApiService(
         SaaSApiClientConfiguration clientConfiguration, 
-        IApplicationConfigRepository applicationConfigRepository, 
         ILogger<DataCentralApiService> logger,
         IDataCentralPurchasesRepository dataCentralPurchaseRepository,
         IPlansRepository planRepository,
         IConfiguration configuration)
     {        
         this.ClientConfiguration = clientConfiguration;
-        this.applicationConfigRepository = applicationConfigRepository;
         this.logger = logger;
         this.dataCentralPurchaseRepository = dataCentralPurchaseRepository;
         this.planRepository = planRepository;
@@ -56,7 +52,9 @@ public class DataCentralApiService : IDataCentralApiService
             throw new ArgumentException("Plan not found for the given plan ID.", nameof(planId));
         }
 
-        var editionIdConfig = configuration[$"DataCentralConfig:{plan.DisplayName}EditionId"];
+        //var editionIdConfig = configuration[$"DataCentralConfig:{plan.DisplayName}EditionId"];
+        var configKey = $"DataCentralConfig:{plan.PlanId}EditionId";
+        var editionIdConfig = configuration[configKey];
         if (string.IsNullOrEmpty(editionIdConfig))
         {
             throw new InvalidOperationException($"Configuration for EditionId of plan '{plan.DisplayName}' is missing.");
@@ -88,8 +86,6 @@ public class DataCentralApiService : IDataCentralApiService
 
         using (var httpClient = new HttpClient())
         {
-            //httpClient.DefaultRequestHeaders.Add("SubscriptionId", subscriptionId.ToString());
-
             var jsonContent = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
 
             var response = await httpClient.PostAsync(triggerAutomationUrl, jsonContent);
@@ -101,6 +97,34 @@ public class DataCentralApiService : IDataCentralApiService
                 throw new Exception($"Failed to trigger instance automation: {errorMessage}");
             }
         }
+    }
+
+    public async Task DisableInstance(Guid subscriptionId)
+    {
+        throw new NotImplementedException();
+        //var disableAutomationUrl = configuration[$"DataCentralConfig:DisableInstanceApiRoute"];
+        //var input = new
+        //{
+        //    bla = ""
+        //};
+
+        //using (var httpClient = new HttpClient())
+        //{
+        //    var jsonContent = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+
+        //    var response = await httpClient.PostAsync(disableAutomationUrl, jsonContent);
+
+        //    if (!response.IsSuccessStatusCode)
+        //    {
+        //        var errorMessage = await response.Content.ReadAsStringAsync();
+        //        throw new Exception("Failed to trigger disable of instance");
+        //    }
+        //}
+    }
+
+    public async Task ReEnableInstance(Guid subscriptionId)
+    {
+        throw new NotImplementedException();
     }
 
 
@@ -143,7 +167,20 @@ public class DataCentralApiService : IDataCentralApiService
         try
         {
             var dataCentralTenant = this.dataCentralPurchaseRepository.Get(subscriptionId);
-            await SetTenantStatusInternalAsync((int)dataCentralTenant.TenantId, false);
+            if (dataCentralTenant == null)
+            {
+                logger.LogError("DataCentralPurchase with SubscriptionId: {0} not found", subscriptionId);
+                throw new InvalidOperationException($"Subscription {subscriptionId} not found.");
+            }
+            else if (dataCentralTenant.TenantId == null)
+            {
+                logger.LogError($"Unable to disable DataCentral tenant for subscription: {subscriptionId}. TenantId for purchase was not found");
+                throw new InvalidOperationException($"Tenant ID missing for subscription {subscriptionId}.");
+            }
+            else
+            {
+                await SetTenantStatusInternalAsync((int)dataCentralTenant.TenantId, false);
+            }
         }
         catch(Exception ex)
         {
@@ -151,7 +188,7 @@ public class DataCentralApiService : IDataCentralApiService
             //do something more here, send email to admins?
             throw;
         }
-    }
+    }   
 
     //Offer reinstated, user paid bill
     public async Task EnableTenant(Guid subscriptionId)
@@ -350,5 +387,6 @@ public class InstanceAutomationInputDto()
     public bool? InsertIntoDb { get; set; } = false;
     public bool? UpdateSettings { get; set; } = false;
     public bool? UpdateHostAdmin { get; set; } = false;
+    public bool? IsRetry { get; set; } = false;
 }
 
