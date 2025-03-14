@@ -469,7 +469,6 @@ public class HomeController : BaseController
             var oldValue = this.subscriptionService.GetSubscriptionsBySubscriptionId(subscriptionId);
             SubscriptionProcessQueueModel queueObject = new SubscriptionProcessQueueModel();
             var isCreatingTenant = this.dataCentralPurchaseHelperService.IsCurrentSubscriptionTenantPlan(oldValue.OfferId, planId);
-            var isCreatingTenant2 = oldValue.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId); ;
             if (operation == "Activate")
             {
                 //Goes only in here if subscription is going from PendingFulfillmentStart (user has not activated his subscription) to Subscribed
@@ -916,14 +915,14 @@ public class HomeController : BaseController
                                 this.logger.Info(HttpUtility.HtmlEncode($"Quantity Change Success. SubscriptionId: {subscriptionDetail.Id} ToQuantity: {subscriptionDetail.Quantity} UserId: ****** OperationId: {jsonResult.OperationId}."));
 
                                 //TODO: DISTINCT BETWEEN OFFER TYPES FOR PRO AND PREMIUM
-                                if (true)
-                                {
-                                    await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
-                                }
-                                else
-                                {
-                                    //TODO INSTANCE STUFF HERE
-                                }
+                                //if (true)
+                                //{
+                                //    await dataCentralApiService.UpdateTenantEditionForPlanChange(subscriptionDetail.Id, subscriptionDetail.PlanId);
+                                //}
+                                //else
+                                //{
+                                //    //TODO INSTANCE STUFF HERE
+                                //}
                                 
                                 await this.applicationLogService.AddApplicationLog($"Quantity Change Success. SubscriptionId: {subscriptionDetail.Id} ToQuantity: {subscriptionDetail.Quantity} UserId: {currentUserId} OperationId: {jsonResult.OperationId}.").ConfigureAwait(false);
                             }

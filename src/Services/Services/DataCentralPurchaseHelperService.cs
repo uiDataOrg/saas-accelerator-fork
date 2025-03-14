@@ -20,10 +20,6 @@ public class DataCentralPurchaseHelperService : IDataCentralPurchaseHelperServic
 
     public bool IsCurrentSubscriptionTenantPlan(string offerId, string planId)
     {
-        //var plan = planRepository.GetById(planId);
-        //var value = !plan.PlanId.StartsWith(ClientConfiguration.DataCentralEnterprisePlanId);
-        //return value;
-
         if (offerId == null)
         {
             //var value = !plan.PlanId.StartsWith(ClientConfiguration.DateCentralInstanceOfferId);
@@ -31,11 +27,11 @@ public class DataCentralPurchaseHelperService : IDataCentralPurchaseHelperServic
 
             var plan = planRepository.GetById(planId);
             var offer = offerRepository.GetOfferById(plan.OfferId);
-            return offer.OfferId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+            return offer.OfferId == ClientConfiguration.DataCentralTenantOfferId;
         }
         else
         {
-            return offerId.StartsWith(ClientConfiguration.DataCentralTenantOfferId);
+            return offerId == ClientConfiguration.DataCentralTenantOfferId;
         }
     }
 }
