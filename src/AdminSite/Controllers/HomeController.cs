@@ -396,7 +396,7 @@ public class HomeController : BaseController
             var detailsFromAPI = await this.fulfillApiService.GetSubscriptionByIdAsync(subscriptionId).ConfigureAwait(false);
             subscriptionDetail.Beneficiary = detailsFromAPI.Beneficiary;
 
-            var dataCentralPurchase = this.dataCentralPurchasesRepository.Get(subscriptionDetail.Id);
+            var dataCentralPurchase = await this.dataCentralPurchasesRepository.GetAsync(subscriptionDetail.Id);
             
             subscriptionDetail.IsSubscriptionForTenant = dataCentralPurchase.TypeOfPurchase == "tenant";
             subscriptionDetail.DataCentralPurchaseEnvironmentName = dataCentralPurchase.EnvironmentName;

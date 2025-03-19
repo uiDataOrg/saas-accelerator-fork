@@ -99,38 +99,9 @@ public class DataCentralApiService : IDataCentralApiService
         }
     }
 
-    public async Task DisableInstance(Guid subscriptionId)
-    {
-        throw new NotImplementedException();
-        //var disableAutomationUrl = configuration[$"DataCentralConfig:DisableInstanceApiRoute"];
-        //var input = new
-        //{
-        //    bla = ""
-        //};
-
-        //using (var httpClient = new HttpClient())
-        //{
-        //    var jsonContent = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-
-        //    var response = await httpClient.PostAsync(disableAutomationUrl, jsonContent);
-
-        //    if (!response.IsSuccessStatusCode)
-        //    {
-        //        var errorMessage = await response.Content.ReadAsStringAsync();
-        //        throw new Exception("Failed to trigger disable of instance");
-        //    }
-        //}
-    }
-
-    public async Task ReEnableInstance(Guid subscriptionId)
-    {
-        throw new NotImplementedException();
-    }
-
-
     public async Task CreateTenantForNewSubscription(Guid subscriptionId, string customerEmailAddress, string customerName, string planId)
     {
-        var tenant = this.dataCentralPurchaseRepository.Get(subscriptionId);
+        var tenant = await this.dataCentralPurchaseRepository.GetAsync(subscriptionId);
         if (tenant == null)
         {
             throw new Exception("Tenant not found");
@@ -142,12 +113,12 @@ public class DataCentralApiService : IDataCentralApiService
 
         var newlyCreatedTenantId = await GetTenantIdByNameInternalAsync(tenant.EnvironmentName);
         tenant.TenantId = newlyCreatedTenantId;
-        this.dataCentralPurchaseRepository.Update(tenant);
+        await this.dataCentralPurchaseRepository.UpdateAsync(tenant);
     }
 
     public async Task UpdateTenantEditionForPlanChange(Guid subscriptionId, string newPlanId)
     {
-        var tenant = this.dataCentralPurchaseRepository.Get(subscriptionId);
+        var tenant = await this.dataCentralPurchaseRepository.GetAsync(subscriptionId);
         if (tenant == null)
         {
             throw new ArgumentException("Tenant not found for the given subscription ID.", nameof(subscriptionId));
@@ -166,7 +137,7 @@ public class DataCentralApiService : IDataCentralApiService
     {
         try
         {
-            var dataCentralTenant = this.dataCentralPurchaseRepository.Get(subscriptionId);
+            var dataCentralTenant = await this.dataCentralPurchaseRepository.GetAsync(subscriptionId);
             if (dataCentralTenant == null)
             {
                 logger.LogError("DataCentralPurchase with SubscriptionId: {0} not found", subscriptionId);
@@ -195,7 +166,7 @@ public class DataCentralApiService : IDataCentralApiService
     {
         try
         {
-            var dataCentralTenant = this.dataCentralPurchaseRepository.Get(subscriptionId);
+            var dataCentralTenant = await this.dataCentralPurchaseRepository.GetAsync(subscriptionId);
             await SetTenantStatusInternalAsync((int)dataCentralTenant.TenantId, true);
         }
         catch(Exception ex)

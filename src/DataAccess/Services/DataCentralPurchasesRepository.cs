@@ -1,8 +1,10 @@
 ﻿using Marketplace.SaaS.Accelerator.DataAccess.Context;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
 using Marketplace.SaaS.Accelerator.DataAccess.Entities;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 
 namespace Marketplace.SaaS.Accelerator.DataAccess.Services;
@@ -15,26 +17,28 @@ public class DataCentralPurchasesRepository : IDataCentralPurchasesRepository
         this.context = context;
     }
 
-    public void Add(DataCentralPurchase tenant)
+    public async Task<DataCentralPurchase> GetAsync(Guid subscriptionId)
+    {
+        return await this.context.DataCentralPurchases
+            .Where(dt => dt.SubscriptionId == subscriptionId)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task AddAsync(DataCentralPurchase tenant)
     {
         if(tenant != null)
         {
-            this.context.DataCentralPurchases.Add(tenant);
-            this.context.SaveChanges();
+            await this.context.DataCentralPurchases.AddAsync(tenant);
+            await this.context.SaveChangesAsync();
         }
     }
 
-    public DataCentralPurchase Get(Guid subscriptionId)
+    public async Task UpdateAsync(DataCentralPurchase tenant)
     {
-        return this.context.DataCentralPurchases.Where(dt => dt.SubscriptionId == subscriptionId).FirstOrDefault();
-    }
-
-    public void Update(DataCentralPurchase tenant)
-    {
-        if(tenant != null)
+        if (tenant != null)
         {
             this.context.DataCentralPurchases.Update(tenant);
-            this.context.SaveChanges();
+            await this.context.SaveChangesAsync();
         }
     }
 }

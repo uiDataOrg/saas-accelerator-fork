@@ -35,4 +35,6 @@ public interface IEmailTemplateRepository
     /// </summary>
     /// <returns> Returns the status of the modified EmailTemplate </returns>
     string SaveEmailTemplateByStatus(EmailTemplate template);
+
+    EmailTemplate GetById(int id);
 }

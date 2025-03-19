@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
 using Marketplace.SaaS.Accelerator.DataAccess.Entities;
 using Marketplace.SaaS.Accelerator.Services.Models;
@@ -363,6 +364,13 @@ public class SubscriptionService
                 on subscription.AmpplanId equals plan.PlanId
             select subscription;
         return meteredSubscriptions.ToList();
+    }
+
+    public async Task<SubscriptionResult> GetByIdAsync(Guid subscriptionId)
+    {
+        var subscription = await this.subscriptionRepository.GetByIdAsync(subscriptionId);
+        var subscriptionResult = this.PrepareSubscriptionResponse(subscription);
+        return subscriptionResult;
     }
     /*
     /// <summary>

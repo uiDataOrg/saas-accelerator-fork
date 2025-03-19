@@ -102,4 +102,15 @@ public class EmailTemplateRepository : IEmailTemplateRepository
         }
         return template.Status;
     }
+
+    public EmailTemplate GetById(int id)
+    {
+        var template = this.context.EmailTemplate.Find(id);
+        if (template != null)
+        {
+            return template;
+        }
+
+        return null;
+    }
 }

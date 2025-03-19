@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Marketplace.SaaS.Accelerator.DataAccess.Entities;
 
 namespace Marketplace.SaaS.Accelerator.DataAccess.Contracts;
@@ -28,6 +29,8 @@ public interface ISubscriptionsRepository : IDisposable, IBaseRepository<Subscri
     /// <param name="isIncludeDeactvated">if set to <c>true</c> [is include deactvated].</param>
     /// <returns> Subscriptions.</returns>
     Subscriptions GetById(Guid subscriptionId, bool isIncludeDeactvated = false);
+
+    Task<Subscriptions> GetByIdAsync(Guid subscriptionId, bool isIncludeDeactvated = false);
 
     /// <summary>
     /// Updates the status for subscription.

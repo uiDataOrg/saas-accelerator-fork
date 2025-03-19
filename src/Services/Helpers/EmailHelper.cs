@@ -38,6 +38,21 @@ public class EmailHelper
         this.planEventsMappingRepository = planEventsMappingRepository;
     }
 
+    public EmailContentModel PrepareEnterpriseActivationEmail(string emailAddress, string environmentName)
+    {
+        var emailtemplate = this.emailTemplateRepository.GetTemplateForStatus("EnterpriseActivation");//the html
+
+        var body = emailtemplate.TemplateBody;
+
+        var instanceUrl = string.Format("https://{0}.datacentral.ai", environmentName);
+        var imageUrl = string.Format("https://api.{0}.datacentral.ai/TenantCustomization/GetTenantLogo/light/png", environmentName);
+        body = body.Replace("{{INSTANCE_HOST_URL}}", instanceUrl);
+        body = body.Replace("{{IMAGE_PLACEHOLDER}}", imageUrl);
+
+        var subject = "Enterprise Activation";
+        return FinalizeContentEmail(subject, body, emailAddress);
+    }
+
     /// <summary>
     /// Prepares the content of the email.
     /// </summary>
@@ -150,6 +165,22 @@ public class EmailHelper
         emailContent.Subject = subject;
         emailContent.Body = body;
         emailContent.CopyToCustomer = copyToCustomer;
+        emailContent.FromEmail = this.applicationConfigRepository.GetValueByName("SMTPFromEmail");
+        emailContent.Password = this.applicationConfigRepository.GetValueByName("SMTPPassword");
+        emailContent.SSL = bool.TryParse(this.applicationConfigRepository.GetValueByName("SMTPSslEnabled"), out bool smtpssl) ? smtpssl : false;
+        emailContent.UserName = this.applicationConfigRepository.GetValueByName("SMTPUserName");
+        emailContent.Port = int.TryParse(this.applicationConfigRepository.GetValueByName("SMTPPort"), out int smtpport) ? smtpport : 0;
+        emailContent.SMTPHost = this.applicationConfigRepository.GetValueByName("SMTPHost");
+        return emailContent;
+    }
+
+    private EmailContentModel FinalizeContentEmail(string subject, string body, string toEmails)
+    {
+        EmailContentModel emailContent = new EmailContentModel();
+        emailContent.ToEmails = toEmails;
+        emailContent.IsActive = false;
+        emailContent.Subject = subject;
+        emailContent.Body = body;
         emailContent.FromEmail = this.applicationConfigRepository.GetValueByName("SMTPFromEmail");
         emailContent.Password = this.applicationConfigRepository.GetValueByName("SMTPPassword");
         emailContent.SSL = bool.TryParse(this.applicationConfigRepository.GetValueByName("SMTPSslEnabled"), out bool smtpssl) ? smtpssl : false;

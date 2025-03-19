@@ -298,7 +298,7 @@ public class HomeController : BaseController
                         subscriptionExtension.IsAutomaticProvisioningSupported = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("IsAutomaticProvisioningSupported"));
                         subscriptionExtension.AcceptSubscriptionUpdates = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("AcceptSubscriptionUpdates"));
 
-                        var dataCentralPurchase = this.dataCentralPurchasesRepository.Get(newSubscription.SubscriptionId);
+                        var dataCentralPurchase = await this.dataCentralPurchasesRepository.GetAsync(newSubscription.SubscriptionId);
                         if (subscriptionExtension.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && dataCentralPurchase != null)
                         {
                             
@@ -664,12 +664,12 @@ public class HomeController : BaseController
                             this.logger.Info(HttpUtility.HtmlEncode($"Save Subscription Parameters:  {JsonSerializer.Serialize(subscriptionResultExtension.SubscriptionParameters)}" ));
 
                             // Todo figure out if there is some kind of dbcontext bug here. Concurrent threads ongoing
-                            var isPurchase = dataCentralPurchasesRepository.Get(subscriptionId);
+                            var isPurchase = await dataCentralPurchasesRepository.GetAsync(subscriptionId);
                             //On the off chance that a tenant creation fails and user goes through the account configuration page again,
                             //we dont want to insert duplicates of same line into DataCentralPurchases table
                             if (isPurchase == null)
                             {
-                                this.dataCentralPurchasesRepository.Add(new DataCentralPurchase()
+                                await this.dataCentralPurchasesRepository.AddAsync(new DataCentralPurchase()
                                 {
                                     EnvironmentName = environmentName,
                                     SubscriptionId = oldValue.Id,
@@ -679,9 +679,8 @@ public class HomeController : BaseController
                             else
                             {
                                 isPurchase.EnvironmentName = environmentName;
-                                this.dataCentralPurchasesRepository.Update(isPurchase);
+                                await this.dataCentralPurchasesRepository.UpdateAsync(isPurchase);
                             }
-                            
                             
                             if (subscriptionResultExtension.SubscriptionParameters != null && subscriptionResultExtension.SubscriptionParameters.Count() > 0)
                             {
@@ -986,7 +985,7 @@ public class HomeController : BaseController
     /// <param name="planId">The plan identifier.</param>
     /// <param name="operation">The operation.</param>
     /// <returns> Subscriptions View. </returns>
-    public IActionResult ViewSubscription(Guid subscriptionId, string planId, string operation)
+    public async Task<IActionResult> ViewSubscription(Guid subscriptionId, string planId, string operation)
     {
         try
         {
@@ -1011,7 +1010,7 @@ public class HomeController : BaseController
                 subscriptionDetail.SubscriptionParameters = this.subscriptionService.GetSubscriptionsParametersById(subscriptionId, planDetails.PlanGuid);
                 subscriptionDetail.IsAutomaticProvisioningSupported = Convert.ToBoolean(this.applicationConfigRepository.GetValueByName("IsAutomaticProvisioningSupported"));
 
-                var dataCentralPurchase = this.dataCentralPurchasesRepository.Get(subscriptionDetail.Id);
+                var dataCentralPurchase = await this.dataCentralPurchasesRepository.GetAsync(subscriptionDetail.Id);
                 if (subscriptionDetail.SubscriptionStatus != SubscriptionStatusEnumExtension.PendingFulfillmentStart && dataCentralPurchase != null)
                 {
                     subscriptionDetail.DataCentralPurchaseEnvironmentName = dataCentralPurchase.EnvironmentName;
@@ -1037,7 +1036,7 @@ public class HomeController : BaseController
 
     [HttpPost]
     [IgnoreAntiforgeryToken]
-    public IActionResult InstanceAutomationWebhook([FromBody] InstanceAutomationWebhookDto dto)
+    public async Task<IActionResult> InstanceAutomationWebhook([FromBody] InstanceAutomationWebhookDto dto)
     {
         var salt = ClientConfiguration.DataCentralWebhookSalt;
 
@@ -1051,23 +1050,28 @@ public class HomeController : BaseController
             return Unauthorized("Invalid NotSoSecureKey.");
         }
 
-        if (!dto.Success)
-        {
-            // Handle failure case, e.g., log and send alert
-            logger.LogError($"Instance automation failed for SubscriptionId: {dto.SubscriptionId}");
-            return StatusCode(500, "Instance automation failed.");
-        }
-
         // Cross-reference and update environmentId
-        var purchasedInstance = this.dataCentralPurchasesRepository.Get(dto.SubscriptionId);
+        var purchasedInstance = await this.dataCentralPurchasesRepository.GetAsync(dto.SubscriptionId);
         if (purchasedInstance != null)
         {
             purchasedInstance.EnvironmentId = dto.EnvironmentId;
-            this.dataCentralPurchasesRepository.Update(purchasedInstance);
+            await this.dataCentralPurchasesRepository.UpdateAsync(purchasedInstance);
         }
 
         // Process pending activation and notification status handlers;
-        this.notificationStatusHandlers.Process(dto.SubscriptionId);
+        try
+        {
+            var subscription = await this.subscriptionService.GetByIdAsync(dto.SubscriptionId);
+            var emailContent = this.emailHelper.PrepareEnterpriseActivationEmail(subscription.CustomerEmailAddress, purchasedInstance.EnvironmentName);
+            this.emailService.SendEmail(emailContent);
+
+            this.notificationStatusHandlers.Process(dto.SubscriptionId);
+        }
+        catch(Exception ex)
+        {
+            logger.Error("Processing notification or sending activation email failed", ex);
+            return StatusCode(500, "Processing notification or sending activation email failed");
+        }
 
         return Ok("Instance automation completed successfully.");
     }
@@ -1166,7 +1170,6 @@ public class HomeController : BaseController
 public class InstanceAutomationWebhookDto
 {
     public Guid SubscriptionId { get; set; }
-    public bool Success { get; set; }
     public int EnvironmentId { get; set; }
     public string NotSoSecureKey { get; set; }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Marketplace.SaaS.Accelerator.DataAccess.Context;
 using Marketplace.SaaS.Accelerator.DataAccess.Contracts;
 using Marketplace.SaaS.Accelerator.DataAccess.Entities;
@@ -166,6 +167,17 @@ public class SubscriptionsRepository : ISubscriptionsRepository
         if (subscriptionId != default)
         {
             return this.context.Subscriptions.Include(s => s.User).Where(s => s.AmpsubscriptionId == subscriptionId).FirstOrDefault();
+        }
+
+        return null;
+    }
+
+
+    public async Task<Subscriptions> GetByIdAsync(Guid subscriptionId, bool isIncludeDeactvated = false)
+    {
+        if (subscriptionId != default)
+        {
+            return await this.context.Subscriptions.Include(s => s.User).Where(s => s.AmpsubscriptionId == subscriptionId).FirstOrDefaultAsync();
         }
 
         return null;
