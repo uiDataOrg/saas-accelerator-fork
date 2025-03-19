@@ -303,7 +303,7 @@ public class WebHookHandler : IWebhookHandler
         }
         else
         {
-            await dataCentralApiService.ReEnableInstance(payload.SubscriptionId);
+            //await dataCentralApiService.ReEnableInstance(payload.SubscriptionId);
         }
 
         await Task.CompletedTask;
@@ -354,7 +354,7 @@ public class WebHookHandler : IWebhookHandler
         }
         else
         {
-            await dataCentralApiService.DisableInstance(payload.SubscriptionId);
+            //await dataCentralApiService.DisableInstance(payload.SubscriptionId);
         }
         
 
@@ -393,7 +393,7 @@ public class WebHookHandler : IWebhookHandler
         }
         else
         {
-            await dataCentralApiService.DisableInstance(payload.SubscriptionId);
+            //await dataCentralApiService.DisableInstance(payload.SubscriptionId);
         }
         
         this.notificationStatusHandlers.Process(payload.SubscriptionId);

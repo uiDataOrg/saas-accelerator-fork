@@ -525,7 +525,7 @@ public class HomeController : BaseController
                 else
                 {
                     //Disable instance
-                    await this.dataCentralApiService.DisableInstance(subscriptionId);
+                    //await this.dataCentralApiService.DisableInstance(subscriptionId);
                     
                 }
 
