@@ -226,7 +226,18 @@
                             }
 
                             <dd class="col-sm-9 p-2 p10" style="position: relative;">
-                                @Html.TextBoxFor(model => model.DataCentralPurchaseEnvironmentName, new { style = "width:400px; height: 34px;", id = "tenantNameInput", onkeyup = "checkSubdomainAvailability()" })
+                                @Html.TextBoxFor(
+                                    model => model.DataCentralPurchaseEnvironmentName,
+                                    new
+                                    {
+                                        style = "width:400px; height: 34px;",
+                                        id = "tenantNameInput",
+                                        @minlength = "2",
+                                        @maxlength = "24",
+                                        onkeyup = "checkSubdomainAvailability()",
+                                         oninput = "this.value = this.value.replace(/[^a-z]/g, '')"
+                                    }
+                                )
 
                                 <!-- Icons for availability status -->
                                 <svg id="availabilityCheck" style="height: 14px; display: none;" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="azc-fabric-check-svg" viewBox="0 0 12.7 9.1"><path d="M12.7.7,4.4,9.1,0,4.7.7,4,4.4,7.6,12,0Z" fill="#57a300"></path></svg>
@@ -238,6 +249,10 @@
 
                                 <!-- Availability message below input -->
                                 <div id="availabilityMessage" style="color: #a4262c; font-size: 0.9em; display: none; margin-top: 5px;"></div>
+
+                                <div style="font-size: 0.85em; color: gray; margin-top: 5px;">
+                                    Please enter 2–24 lowercase letters. No numbers or symbols allowed.
+                                </div>
                             </dd>
 
                             <!-- URL Container that should appear only if the tenant name is available -->
@@ -254,7 +269,6 @@
                                         Final URL for your subscription
                                     </dt>
                                 }
-                                
                                 
                                 <dd class="col-sm-9 p-2 p10">
                                     <span id="tenantUrl" style="font-weight: bold; color: #007BFF;">fdsafdsfdsafdsa</span>
@@ -291,9 +305,7 @@
                                 @Html.HiddenFor(model => model.DataCentralUrl)
                                 <a id="copyButton" onclick="copyTenantUrl2()" id="btnActive" class="cm-button-default text-end" style="margin: 0 0 0 10px; padding: 4px 8px;">📋 Copy</a>
                             </dd>
-                            
                         }
-
                     </dl>
                 </div>
                 <div class="text-end">
@@ -304,7 +316,13 @@
                     }
                     @if (Model.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingFulfillmentStart && Model.IsAutomaticProvisioningSupported == true)
                     {
-                        <a onclick="SubscriptionOperation('@Model.Id','@Model.PlanId','Activate')" id="btnActive" class="cm-button-default text-end">Activate</a>
+                        <a onclick="SubscriptionOperation('@Model.Id','@Model.PlanId','Activate')"
+                           id="btnActive"
+                           class="cm-button-default text-end"
+                           style="pointer-events: none; opacity: 0.5;"
+                           data-disabled="true">
+                            Activate
+                        </a>
                     }
                     @if (Model.SubscriptionStatus == SubscriptionStatusEnumExtension.PendingFulfillmentStart && Model.IsAutomaticProvisioningSupported == false)
                     {
@@ -347,212 +365,234 @@ else
         </div>
     </div>
 }
-<script type="text/javascript">
-    function copyTenantUrl2(){
-        copyToClipboard('@Model.DataCentralUrl');
-    }
-
-
-    function copyTenantUrl() {
-        const tenantUrlElement = document.getElementById('tenantUrl');
-        const tenantUrl = tenantUrlElement.innerText || tenantUrlElement.textContent;
-
-        if (!tenantUrl) {
-            swal({
-                icon: 'warning',
-                title: 'Oops...',
-                text: 'No URL to copy!',
-            });
-            return;
+    <script type="text/javascript">
+        function copyTenantUrl2(){
+            copyToClipboard('@Model.DataCentralUrl');
         }
 
-        copyToClipboard(tenantUrl);
-    }
 
-    function copyToClipboard(tenantUrl) {
-        navigator.clipboard.writeText(tenantUrl).then(() => {
-            swal({
-                icon: 'success',
-                title: 'Copied!',
-                text: 'The URL has been copied to your clipboard.',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }).catch(err => {
-            swal({
-                icon: 'error',
-                title: 'Failed!',
-                text: 'Could not copy the URL. Please try again.',
-            });
-            console.error("Failed to copy: ", err);
-        });
-    }
+        function copyTenantUrl() {
+            const tenantUrlElement = document.getElementById('tenantUrl');
+            const tenantUrl = tenantUrlElement.innerText || tenantUrlElement.textContent;
 
-    async function SubscriptionOperation(subscriptionId, planId, operation) {
-        let tenantName = '';
-
-        // If planId is not "freemium", handle tenantName input
-        if (!planId.includes("freemium")) {
-            tenantName = document.getElementById("tenantNameInput").value;
-
-            if (!validateTenantName(tenantName)) {
+            if (!tenantUrl) {
                 swal({
-                    title: "Input is empty",
-                    text: "Please fill out tenant name input",
-                    icon: "warning"
+                    icon: 'warning',
+                    title: 'Oops...',
+                    text: 'No URL to copy!',
                 });
-                return; // Exit the function if the tenant name is not valid
+                return;
             }
 
-            const isAvailable = await isTenantAvailable(tenantName);
-            if (!isAvailable) {
-                swal({
-                    title: "Not available",
-                    text: "Tenant name is taken, please select another one",
-                    icon: "warning"
-                });
-                return; // Exit the function if the tenant is not available
-            }
+            copyToClipboard(tenantUrl);
         }
 
-        // Proceed if validation passes
-        if (validate()) {
-            // Show the spinner overlay when validation passes
-            document.getElementById('fullPageSpinner').classList.add('show');
+        function copyToClipboard(tenantUrl) {
+            navigator.clipboard.writeText(tenantUrl).then(() => {
+                swal({
+                    icon: 'success',
+                    title: 'Copied!',
+                    text: 'The URL has been copied to your clipboard.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }).catch(err => {
+                swal({
+                    icon: 'error',
+                    title: 'Failed!',
+                    text: 'Could not copy the URL. Please try again.',
+                });
+                console.error("Failed to copy: ", err);
+            });
+        }
 
-            var formobject = $('#frmIndex').serialize();
-            var csrftoken = $('input[name="__RequestVerificationToken"]').val();
+        async function SubscriptionOperation(subscriptionId, planId, operation) {
+            let tenantName = '';
 
-            // Ensure tenantName is included only if planId is not "freemium"
-            var requestData = formobject +
-                "&subscriptionId=" + subscriptionId +
-                "&planId=" + planId +
-                "&operation=" + operation;
+            // If planId is not "freemium", handle tenantName input
             if (!planId.includes("freemium")) {
-                requestData += "&environmentName=" + tenantName;
+                tenantName = document.getElementById("tenantNameInput").value;
+
+                if (!validateTenantName(tenantName)) {
+                    swal({
+                        title: "Input is empty",
+                        text: "Please fill out tenant name input",
+                        icon: "warning"
+                    });
+                    return; // Exit the function if the tenant name is not valid
+                }
+
+                const isAvailable = await isTenantAvailable(tenantName);
+                if (!isAvailable) {
+                    swal({
+                        title: "Not available",
+                        text: "Tenant name is taken, please select another one",
+                        icon: "warning"
+                    });
+                    return; // Exit the function if the tenant is not available
+                }
             }
 
-            $.ajax({
-                url: '/Home/SubscriptionOperation',
-                type: 'POST',
-                headers: { RequestVerificationToken: csrftoken },
-                data: requestData,
-                cache: false,
-                success: function (result) {
-                    $('#divIndex').html(result);
-                    // Hide the spinner overlay on success
-                    document.getElementById('fullPageSpinner').classList.remove('show');
-                },
-                error: function (result) {
-                    $('#divIndex').html(result);
-                    // Hide the spinner overlay on error
-                    document.getElementById('fullPageSpinner').classList.remove('show');
+            // Proceed if validation passes
+            if (validate()) {
+                // Show the spinner overlay when validation passes
+                document.getElementById('fullPageSpinner').classList.add('show');
+
+                var formobject = $('#frmIndex').serialize();
+                var csrftoken = $('input[name="__RequestVerificationToken"]').val();
+
+                // Ensure tenantName is included only if planId is not "freemium"
+                var requestData = formobject +
+                    "&subscriptionId=" + subscriptionId +
+                    "&planId=" + planId +
+                    "&operation=" + operation;
+                if (!planId.includes("freemium")) {
+                    requestData += "&environmentName=" + tenantName;
+                }
+
+                $.ajax({
+                    url: '/Home/SubscriptionOperation',
+                    type: 'POST',
+                    headers: { RequestVerificationToken: csrftoken },
+                    data: requestData,
+                    cache: false,
+                    success: function (result) {
+                        $('#divIndex').html(result);
+                        // Hide the spinner overlay on success
+                        document.getElementById('fullPageSpinner').classList.remove('show');
+                    },
+                    error: function (result) {
+                        $('#divIndex').html(result);
+                        // Hide the spinner overlay on error
+                        document.getElementById('fullPageSpinner').classList.remove('show');
+                    }
+                });
+            } else {
+                swal({
+                    title: "Required",
+                    text: "Please fill all required values",
+                    icon: "warning"
+                });
+            }
+        }
+
+        function validate() {
+            var valid = true;
+            $(':input[required]:visible').each(function () {
+                if ($(this).val() == "") {
+                    valid = false;
                 }
             });
-        } else {
-            swal({
-                title: "Required",
-                text: "Please fill all required values",
-                icon: "warning"
-            });
+            return valid;
         }
-    }
 
-    function validate() {
-        var valid = true;
-        $(':input[required]:visible').each(function () {
-            if ($(this).val() == "") {
-                valid = false;
+        function validateTenantName(tenantName) {
+            return !!tenantName;
+        }
+
+        let typingTimer;
+        const typingDelay = 200; // 1 second
+
+        function toggleActivateButton(enabled) {
+            const btn = document.getElementById("btnActive");
+            if (enabled) {
+                btn.style.pointerEvents = "auto";
+                btn.style.opacity = "1";
+                btn.setAttribute("data-disabled", "false");
+            } else {
+                btn.style.pointerEvents = "none";
+                btn.style.opacity = "0.5";
+                btn.setAttribute("data-disabled", "true");
             }
-        });
-        return valid;
-    }
+        }
 
-    function validateTenantName(tenantName) {
-        return !!tenantName;
-    }
+        async function checkSubdomainAvailability() {
+            clearTimeout(typingTimer);
+            const tenantName = document.getElementById("tenantNameInput").value;
 
-    let typingTimer;
-    const typingDelay = 200; // 1 second
+            // Disable button on every change by default
+            toggleActivateButton(false);
 
-    async function checkSubdomainAvailability() {
-        clearTimeout(typingTimer);
-        const tenantName = document.getElementById("tenantNameInput").value;
+            const urlContainer = document.getElementById("urlContainer");
+            urlContainer.style.display = "none";
 
-        if (tenantName) {
-            typingTimer = setTimeout(async () => {
-                const availabilityCheck = document.getElementById("availabilityCheck");
-                const availabilityXmark = document.getElementById("availabilityXmark");
-                const availabilitySpinner = document.getElementById("availabilitySpinner");
-                const availabilityMessage = document.getElementById("availabilityMessage");
-                const urlContainer = document.getElementById("urlContainer");
-                const tenantUrl = document.getElementById("tenantUrl");
+            if (tenantName) {
+                typingTimer = setTimeout(async () => {
+                    const availabilityCheck = document.getElementById("availabilityCheck");
+                    const availabilityXmark = document.getElementById("availabilityXmark");
+                    const availabilitySpinner = document.getElementById("availabilitySpinner");
+                    const availabilityMessage = document.getElementById("availabilityMessage");
+                    const tenantUrl = document.getElementById("tenantUrl");
 
-                // Show spinner and hide check/xmark icons
-                availabilitySpinner.style.display = "inline-block";
-                availabilityCheck.style.display = "none";
-                availabilityXmark.style.display = "none";
-                availabilityMessage.style.display = "none";
+                    if (tenantName.length < 2) {
+                        document.getElementById("availabilityMessage").textContent = "Minimum 2 characters required.";
+                        document.getElementById("availabilityMessage").style.display = "block";
+                        urlContainer.style.display = "none";
+                        return;
+                    }
 
-                // Check if tenant is available
-                const isAvailable = await isTenantAvailable(tenantName);
-
-                // Hide spinner after checking
-                availabilitySpinner.style.display = "none";
-
-                if (isAvailable) {
-                    // Show check icon, hide x-mark icon
-                    availabilityCheck.style.display = "inline";
+                    // Show spinner and hide check/xmark icons
+                    availabilitySpinner.style.display = "inline-block";
+                    availabilityCheck.style.display = "none";
                     availabilityXmark.style.display = "none";
                     availabilityMessage.style.display = "none";
 
-                    // Show the URL container and update the URL
-                    urlContainer.style.display = "flex";
+                    // Check if tenant is available
+                    const isAvailable = await isTenantAvailable(tenantName);
 
-                    const baseUrlTemplate = '@Model.DataCentralSubdomainUrlTemplate';
-                    const tenantUrlString = baseUrlTemplate.replace("{{subdomainName}}", tenantName);
+                    availabilitySpinner.style.display = "none";
 
-                    // Show the URL container and update the URL dynamically
-                    tenantUrl.textContent = tenantUrlString;
-                } else {
-                    // Show x-mark icon, hide check icon
-                    availabilityCheck.style.display = "none";
-                    availabilityXmark.style.display = "inline";
-                    availabilityMessage.style.display = "block";
-                    availabilityMessage.textContent = "Name is taken, please choose another one.";
+                    if (isAvailable) {
+                        availabilityCheck.style.display = "inline";
+                        availabilityXmark.style.display = "none";
+                        availabilityMessage.style.display = "none";
+                        urlContainer.style.display = "flex";
 
-                    // Hide the URL container if name is not available
-                    urlContainer.style.display = "none";
-                }
-            }, typingDelay);
-        } else {
-            // Hide icons, spinner, and message if input is empty
-            document.getElementById("availabilityCheck").style.display = "none";
-            document.getElementById("availabilityXmark").style.display = "none";
-            document.getElementById("availabilitySpinner").style.display = "none";
-            document.getElementById("availabilityMessage").style.display = "none";
-            document.getElementById("urlContainer").style.display = "none";
+                        const baseUrlTemplate = '@Model.DataCentralSubdomainUrlTemplate';
+                        const tenantUrlString = baseUrlTemplate.replace("{{subdomainName}}", tenantName);
+                        tenantUrl.textContent = tenantUrlString;
+
+                        toggleActivateButton(true);
+                    } else {
+                        availabilityCheck.style.display = "none";
+                        availabilityXmark.style.display = "inline";
+                        availabilityMessage.style.display = "block";
+                        availabilityMessage.textContent = "Name is taken, please choose another one.";
+                        urlContainer.style.display = "none";
+
+                        toggleActivateButton(false);
+                    }
+                }, typingDelay);
+            } else {
+                // Input is empty, disable everything
+                document.getElementById("availabilityCheck").style.display = "none";
+                document.getElementById("availabilityXmark").style.display = "none";
+                document.getElementById("availabilitySpinner").style.display = "none";
+                document.getElementById("availabilityMessage").style.display = "none";
+                document.getElementById("urlContainer").style.display = "none";
+
+                toggleActivateButton(false);
+            }
         }
-    }
 
-    function isTenantAvailable(tenantName) {
-        var csrftoken = $('input[name="__RequestVerificationToken"]').val();
-        return new Promise((resolve, reject) => {
-            $.ajax({
-                url: "/Home/CheckSubdomainAvailability",
-                type: 'POST',
-                headers: { RequestVerificationToken: csrftoken },
-                data: { input: tenantName },
-                cache: false,
-                success: function (response) {
-                    // Resolve the promise based on the response's isAvailable value
-                    resolve(response.isAvailable);
-                },
-                error: function (error) {
-                    console.error("Error:", error);
-                    resolve(false); // Default to false on error
-                }
+        function isTenantAvailable(tenantName) {
+            var csrftoken = $('input[name="__RequestVerificationToken"]').val();
+            return new Promise((resolve, reject) => {
+                $.ajax({
+                    url: "/Home/CheckSubdomainAvailability",
+                    type: 'POST',
+                    headers: { RequestVerificationToken: csrftoken },
+                    data: { input: tenantName },
+                    cache: false,
+                    success: function (response) {
+                        // Resolve the promise based on the response's isAvailable value
+                        resolve(response.isAvailable);
+                    },
+                    error: function (error) {
+                        console.error("Error:", error);
+                        resolve(false); // Default to false on error
+                    }
+                });
             });
-        });
-    }
-</script>
+        }
+    </script>
