@@ -22,9 +22,6 @@ public class DataCentralPurchaseHelperService : IDataCentralPurchaseHelperServic
     {
         if (offerId == null)
         {
-            //var value = !plan.PlanId.StartsWith(ClientConfiguration.DateCentralInstanceOfferId);
-            //return value;
-
             var plan = planRepository.GetById(planId);
             var offer = offerRepository.GetOfferById(plan.OfferId);
             return offer.OfferId == ClientConfiguration.DataCentralTenantOfferId || offer.OfferId == ClientConfiguration.DataCentralDevTenantOfferId;
