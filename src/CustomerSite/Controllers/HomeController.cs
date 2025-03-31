@@ -334,7 +334,7 @@ public class HomeController : BaseController
                     return this.View(subscriptionExtension);
                 }
             }
-
+            
             return this.View(subscriptionExtension);
         }
         catch (Exception ex)
@@ -374,7 +374,7 @@ public class HomeController : BaseController
                     subscriptionDetail.IsSuccess = false;
                     subscriptionDetail.ErrorMessage = Convert.ToString(this.TempData["ErrorMsg"]);
                 }
-
+                
                 return this.View(subscriptionDetail);
             }
             else

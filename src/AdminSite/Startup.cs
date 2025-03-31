@@ -143,7 +143,7 @@ public class Startup
             .AddSingleton<SaaSApiClientConfiguration>(config)
             .AddSingleton<KnownUsersModel>(knownUsers)
             .AddScoped<IDataCentralApiService, DataCentralApiService>()
-            .AddScoped<IDataCentralPurchaseHelperService, IDataCentralPurchaseHelperService>();
+            .AddScoped<IDataCentralPurchaseHelperService, DataCentralPurchaseHelperService>();
 
         // Add the assembly version
         services.AddSingleton<IAppVersionService>(new AppVersionService(Assembly.GetExecutingAssembly()?.GetName()?.Version));
@@ -153,7 +153,7 @@ public class Startup
 
         services
             .AddDbContext<SaasKitContext>(options => options.UseSqlServer(this.Configuration.GetConnectionString("DefaultConnection")));
-
+        
 
         InitializeRepositoryServices(services);
 
@@ -244,5 +244,6 @@ public class Startup
         services.AddScoped<SaaSClientLogger<ApplicationConfigController>>();
         services.AddScoped<SaaSClientLogger<SchedulerController>>();
         services.AddScoped<IDataCentralPurchasesRepository, DataCentralPurchasesRepository>();
+        //services.AddScoped<IDataCentralPurchaseHelperService, DataCentralPurchaseHelperService>();
     }
 }
