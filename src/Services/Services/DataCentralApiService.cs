@@ -81,7 +81,10 @@ public class DataCentralApiService : IDataCentralApiService
             TriggerGithubWorkflows = true,
             InsertIntoDb = true,
             UpdateSettings = true,
-            UpdateHostAdmin = true
+            UpdateHostAdmin = true,
+            DoesEnvironmentExist = false,
+            IsUsingSharedAppServicePlan = false,
+            DeployCode = true
         };
 
         using (var httpClient = new HttpClient())
@@ -358,6 +361,8 @@ public class InstanceAutomationInputDto()
     public bool? InsertIntoDb { get; set; } = false;
     public bool? UpdateSettings { get; set; } = false;
     public bool? UpdateHostAdmin { get; set; } = false;
-    public bool? IsRetry { get; set; } = false;
+    public bool DoesEnvironmentExist { get; set; } = false;
+    public bool IsUsingSharedAppServicePlan { get; set; } = false;
+    public bool DeployCode { get; set; } = true;
 }
 
